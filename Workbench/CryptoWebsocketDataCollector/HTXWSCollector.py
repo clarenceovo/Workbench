@@ -50,7 +50,7 @@ class HtxWSCollector(BaseWSCollector):
         ts = msg["ts"]
         self.logger.info("Latency: %s", get_latency_ms(ts))
 
-    def message_handler(self, msg):
+    def __message_handler(self, msg):
         """
         Handle incoming messages from the WebSocket.
         """
@@ -101,7 +101,7 @@ class HtxWSCollector(BaseWSCollector):
         pass
 
     def run(self):
-        self.client.register_callback(self.message_handler)
+        self.client.register_callback(self.__message_handler)
         self.subscribe()
         self.client.start()
 
