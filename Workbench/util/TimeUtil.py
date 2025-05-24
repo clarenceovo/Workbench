@@ -52,4 +52,9 @@ def get_hkt_now_ms():
     return int(datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=8))).timestamp() * 1000)
 
 def get_latency_ms(event_ts: int) -> int:
+    """
+    Calculate the latency in milliseconds between the event timestamp and the current UTC time.
+    :param event_ts:
+    :return:
+    """
     return event_ts - get_utc_now_ms()
