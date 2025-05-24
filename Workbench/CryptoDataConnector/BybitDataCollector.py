@@ -1,4 +1,5 @@
 import requests
+import pandas as pd
 from Workbench.CryptoDataConnector.BaseDataCollector import BaseDataCollector
 
 class BybitDataCollector(BaseDataCollector):
@@ -28,14 +29,16 @@ class BybitDataCollector(BaseDataCollector):
         params = {"category": "spot"}
         resp = requests.get(url, params=params, headers=self.headers)
         resp.raise_for_status()
-        return resp.json().get("result", {}).get("list", [])
+        ret =  resp.json().get("result", {}).get("list", [])
+        return pd.DataFrame.from_dict(ret)
 
     def get_contract_details(self):
         url = f"{self.base_url}/v5/market/instruments-info"
         params = {"category": "linear"}  # Can change to 'inverse'
         resp = requests.get(url, params=params, headers=self.headers)
         resp.raise_for_status()
-        return resp.json().get("result", {}).get("list", [])
+        ret =  resp.json().get("result", {}).get("list", [])
+        return pd.DataFrame.from_dict(ret)
 
     def get_open_interest(self, symbol="BTCUSDT", category="linear"):
         url = f"{self.base_url}/v5/market/open-interest"
@@ -63,3 +66,6 @@ class BybitDataCollector(BaseDataCollector):
         resp = requests.get(url, headers=self.headers)
         resp.raise_for_status()
         return resp.json().get("time")
+
+    def get_depth(self):
+        pass
