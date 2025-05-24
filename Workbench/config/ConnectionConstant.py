@@ -8,7 +8,7 @@ BINANCE_FUTURES_API_URL = "https://fapi.binance.com"
 HTX_SPOT_WS_URL = "wss://api.hbdm.com/ws"
 HTX_FUTURES_WS_URL = "wss://api.hbdm.com/linear-swap-ws"
 HTX_SPOT_API_URL = "https://api.hbdm.com/spot"
-HTX_FUTURES_API_URL = "https://api.hbdm.com/linear-swap-api/v1"
+HTX_FUTURES_API_URL = "https://api.hbdm.com/"
 HTX_MBP_API_URL = "wss://api-aws.huobi.pro/feed"
 
 # Bitget
@@ -32,3 +32,9 @@ BYBIT_FUTURES_API_URL = "https://api.bybit.com"
 # Hyperliquid
 HYPERLIQUID_SPOT_WS_URL = "wss://api.hyperliquid.xyz/ws"
 HYPERLIQUID_FUTURES_WS_URL = "wss://api.hyperliquid.xyz/ws"
+
+#QUEST
+
+#Influx
+
+#REDIS

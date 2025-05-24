@@ -1,9 +1,17 @@
 import requests
+import pandas as pd
 from Workbench.CryptoDataConnector.BaseDataCollector import BaseDataCollector
+from enum import Enum
 
+class Mode(Enum):
+    SPOT = "spot"
+    FUTURES = "futures"
 
 class BinanceDataCollector(BaseDataCollector):
-    def __init__(self, name="BinanceDataCollector"):
+    def get_depth(self):
+        pass
+
+    def __init__(self, name="BinanceDataCollector",mode=Mode.FUTURES):
         super().__init__(name)
         self.base_spot_url = "https://api.binance.com"
         self.base_futures_url = "https://fapi.binance.com"
@@ -15,17 +23,17 @@ class BinanceDataCollector(BaseDataCollector):
         resp.raise_for_status()
         return resp.json()
 
-    def get_instrument(self):
+    def get_instrument(self)->pd.DataFrame:
         url = f"{self.base_spot_url}/api/v3/exchangeInfo"
         resp = requests.get(url)
         resp.raise_for_status()
-        return resp.json()
+        return pd.DataFrame.from_dict(resp.json()['symbols'])
 
-    def get_contract_details(self):
+    def get_contract_details(self)-> pd.DataFrame:
         url = f"{self.base_futures_url}/fapi/v1/exchangeInfo"
         resp = requests.get(url)
         resp.raise_for_status()
-        return resp.json()
+        return pd.DataFrame.from_dict(resp.json()['symbols'])
 
     def get_open_interest(self, symbol):
         url = f"{self.base_futures_url}/fapi/v1/openInterest"

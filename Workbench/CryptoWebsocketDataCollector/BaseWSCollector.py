@@ -19,7 +19,6 @@ class BaseWSCollector(ABC):
         """
         pass
 
-
     @abstractmethod
     def connect(self):
         """

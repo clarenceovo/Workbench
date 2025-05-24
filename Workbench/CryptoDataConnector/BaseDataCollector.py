@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 class BaseDataCollector(ABC):
     def __init__(self, name):
-        super().__init__(name)
+        self.name = name
 
     @abstractmethod
     def get_kline(self):
@@ -28,3 +28,6 @@ class BaseDataCollector(ABC):
     def get_time(self):
         pass
 
+    @abstractmethod
+    def get_depth(self):
+        pass
