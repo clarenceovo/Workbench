@@ -27,19 +27,26 @@ class websocket_client(threading.Thread):
         self.transportType = "websocket"
         self.header = header
         self.wsUrl = url
-        self.callback = callback
+        self._callback = callback
         self.webSocket = None
         self.is_start = False
         self.main_thread = None
 
     def on_message(self,ws,message):
         try:
-            self.callback(message)
+            self._callback(message)
         except:
             pass
 
     def on_error(self,ws,message):
         logger.error(message)
+
+    def register_callback(self,callback):
+        """
+        Register a callback function to be called when a message is received.
+        :param callback: The callback function to be called.
+        """
+        self._callback = callback
 
     def on_open(self,ws):
         def run(*args):
