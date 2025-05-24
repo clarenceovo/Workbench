@@ -1,6 +1,7 @@
 import logging
 from Workbench.transport.websocket_client import websocket_client
 from abc import ABC, abstractmethod
+
 class BaseWSCollector(ABC):
     """
     Base class for WebSocket data collectors.
@@ -11,6 +12,7 @@ class BaseWSCollector(ABC):
         self.url = url
         self.client = websocket_client(url)
         self.data = None
+        self.logger.info("Initializing WebSocket client...{}".format(url))
 
     @abstractmethod
     def load_instrument(self):
@@ -24,7 +26,7 @@ class BaseWSCollector(ABC):
         """
         Connect to the WebSocket server.
         """
-        self.client.connect()
+        pass
 
     @abstractmethod
     def disconnect(self):

@@ -15,11 +15,15 @@ except ImportError:
 import zlib
 
 import time
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
 class websocket_client(threading.Thread):
 
-    def __init__(self,url,callback=None,header=None):
+    def __init__(self, url, callback=None, header=None):
+        logger.info("Initializing WebSocket client...")
         self.is_running = True
         super(websocket_client, self).__init__()
         self.incoming_queue = queue()
@@ -32,23 +36,33 @@ class websocket_client(threading.Thread):
         self.is_start = False
         self.main_thread = None
 
-    def on_message(self,ws,message):
+    def on_message(self, ws, message):
         try:
             self._callback(message)
         except:
             pass
 
-    def on_error(self,ws,message):
+    def send(self, msg):
+        """
+        Send a message to the WebSocket server.
+        :param msg: The message to send.
+        """
+        if self.is_running:
+            self.outgoing_queue.put(msg)
+        else:
+            logger.error("WebSocket client is not running.")
+
+    def on_error(self, ws, message):
         logger.error(message)
 
-    def register_callback(self,callback):
+    def register_callback(self, callback):
         """
         Register a callback function to be called when a message is received.
         :param callback: The callback function to be called.
         """
         self._callback = callback
 
-    def on_open(self,ws):
+    def on_open(self, ws):
         def run(*args):
             while self.is_running:
                 try:
@@ -68,36 +82,32 @@ class websocket_client(threading.Thread):
                 except Exception as e:
                     logger.error(e)
                     logger.error(self.wsUrl)
-                    self.is_running =False
-
+                    self.is_running = False
 
         self.main_thread = thread.start_new_thread(run, ())
 
-    def on_close(self,ws,close_status_code, close_msg):
+    def on_close(self, ws, close_status_code, close_msg):
         logger.error(close_msg)
         logger.error("websocket is closed.")
-
-
 
     def stop(self):
         logger.info("Stopping Websocket Client...")
         self.is_running = False
-        self.webChannel.keep_running=False
+        self.webChannel.keep_running = False
         self.stop()
 
     def run(self):
         self.webChannel = ws.WebSocketApp(self.wsUrl,
-                                    on_message=self.on_message,
-                                    on_error=self.on_error,
-                                    on_close=self.on_close,
-                                    on_open=self.on_open,
-                                    header=self.header if self.header is not None else None)
+                                          on_message=self.on_message,
+                                          on_error=self.on_error,
+                                          on_close=self.on_close,
+                                          on_open=self.on_open,
+                                          header=self.header if self.header is not None else None)
         self.webChannel.on_open = self.on_open(self.webChannel)
         self.webChannel.run_forever()
 
-
-    def messsagePraser(self,msg):
+    def messsagePraser(self, msg):
         return json.dumps(msg)
 
-    def messageLoader(self,msg):
+    def messageLoader(self, msg):
         return json.loads(msg)

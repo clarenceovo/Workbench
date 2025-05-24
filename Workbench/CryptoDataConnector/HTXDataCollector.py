@@ -3,6 +3,7 @@ import time
 import pandas as pd
 from Workbench.CryptoDataConnector.BaseDataCollector import BaseDataCollector
 from Workbench.config.ConnectionConstant import HTX_SPOT_API_URL, HTX_FUTURES_API_URL
+from Workbench.util.TimeUtil import get_latency_ms
 
 class HTXDataCollector(BaseDataCollector):
     def get_depth(self):
@@ -12,6 +13,7 @@ class HTXDataCollector(BaseDataCollector):
         super().__init__(name)
         self.spot_base_url = HTX_SPOT_API_URL
         self.futures_base_url = HTX_FUTURES_API_URL
+
 
     def get_kline(self, symbol="btcusdt", period="1min", size=100):
         url = f"{self.spot_base_url}/market/history/kline"
