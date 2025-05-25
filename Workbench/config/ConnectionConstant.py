@@ -34,7 +34,8 @@ HYPERLIQUID_SPOT_WS_URL = "wss://api.hyperliquid.xyz/ws"
 HYPERLIQUID_FUTURES_WS_URL = "wss://api.hyperliquid.xyz/ws"
 
 #QUEST
-
+QUEST_HOST = "34.97.186.69"
+QUEST_PORT = 9009
 #Influx
 
 #REDIS

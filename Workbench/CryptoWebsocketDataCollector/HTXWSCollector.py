@@ -1,9 +1,11 @@
 from overrides import overrides
 
-from Workbench.config.ConnectionConstant import HTX_FUTURES_WS_URL
+from Workbench.config.ConnectionConstant import HTX_FUTURES_WS_URL, QUEST_HOST , QUEST_PORT
 from Workbench.CryptoDataConnector.HTXDataCollector import HTXDataCollector
 from Workbench.CryptoWebsocketDataCollector import BaseWSCollector
 from Workbench.util.TimeUtil import get_latency_ms
+from Workbench.model.orderbook.BTreeOrderbook import OrderbookCollection, BTreeOrderbook, Order, Side
+from Workbench.transport.QuestClient import QuestDBClient
 import gzip
 import json
 from io import BytesIO
@@ -34,6 +36,7 @@ class HtxWSCollector(BaseWSCollector):
         super().__init__("HtxWS", url)
         self.data_collector = HTXDataCollector()
         self.load_instrument()
+        self.db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
 
 
     def load_instrument(self):
@@ -81,6 +84,7 @@ class HtxWSCollector(BaseWSCollector):
 
 
     def subscribe(self):
+        setattr(self, "orderbook", OrderbookCollection("HTX"))
         target_inst = ["BTC-USDT","ETH-USDT"] #TODO: load this from redis instrument list
         target_inst.extend(["GRASS-USDT", "PENDLE-USDT", "XMR-USDT", "SOLV-USDT", "SXT-USDT", "NIL-USDT", "DEGEN-USDT", "EPT-USDT",
          "APE-USDT", "ALCH-USDT"])

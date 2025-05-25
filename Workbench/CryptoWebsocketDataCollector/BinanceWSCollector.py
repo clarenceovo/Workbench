@@ -1,10 +1,12 @@
 import json
-
-from Workbench.config.ConnectionConstant import BINANCE_FUTURES_WS_URL, BINANCE_FUTURES_API_URL
+import time
+from Workbench.config.ConnectionConstant import BINANCE_FUTURES_WS_URL, BINANCE_FUTURES_API_URL, QUEST_HOST , QUEST_PORT
 from Workbench.CryptoDataConnector.BinanceDataCollector import BinanceDataCollector
 from Workbench.CryptoWebsocketDataCollector import BaseWSCollector
-from Workbench.util.TimeUtil import get_latency_ms
+from Workbench.util.TimeUtil import get_latency_ms, get_utc_now_ms
+from Workbench.model.orderbook.BTreeOrderbook import OrderbookCollection, BTreeOrderbook, Order, Side
 from Workbench.transport.QuestClient import QuestDBClient
+from Workbench.model.dto.TopOfBook import TopOfBook
 
 BINANCE_WS_TOPICS = {
     "market": {
@@ -37,11 +39,14 @@ class BinanceWSCollector(BaseWSCollector):
     """
     Binance WebSocket data collector.
     """
+    orderbook: OrderbookCollection
 
     def __init__(self, url=BINANCE_FUTURES_WS_URL):
         super().__init__("BinanceWS", url)
         self.data_collector = BinanceDataCollector()
         self.load_instrument()
+        self.last_publish = {}
+        self.db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
 
     def load_instrument(self):
         obj = self.data_collector.get_contract_details()
@@ -55,9 +60,12 @@ class BinanceWSCollector(BaseWSCollector):
         pass
 
     def subscribe(self):
-        target_inst = ['btcusdt', 'ethusdt',"pendleusdt","solvusdt","pendleusdt"]  # TODO: load this from redis instrument list
+        setattr(self, "orderbook", OrderbookCollection("Binance"))
+        #,
+        target_inst = ['btcusdt','ethusdt',"pendleusdt","solvusdt","pendleusdt"]  # TODO: load this from redis instrument list
         topic_template = BINANCE_WS_TOPICS['market']["book_ticker"]
         for inst in target_inst:
+            self.orderbook.add_orderbook(inst)
             topic = topic_template.format(symbol=inst)
             self.client.send({
                 "method": "SUBSCRIBE",
@@ -71,14 +79,38 @@ class BinanceWSCollector(BaseWSCollector):
     def ping(self):
         pass
 
+    def _get_contract_size(self, symbol: str):
+        """
+        Get the contract size for a given symbol.
+        :param symbol: The trading pair symbol.
+        :return: The contract size.
+        """
+        contract_info = self.instrument_info[self.instrument_info['symbol'] == symbol]
+        if not contract_info.empty:
+            return float(contract_info['contractSize'].values[0])
+        return None
+
     def _handler_book_ticker(self, msg):
         """
         Handle book ticker messages from the WebSocket.
         :param msg:
         :return:
         """
-        self.logger.info("Latency: %s", get_latency_ms(msg["E"]))
-        self.logger.info("Book ticker received: {}".format(msg))
+        #self.logger.info(msg)
+        #contract_size = self._get_contract_size(msg["s"])
+        bbo = TopOfBook(
+            timestamp=msg.get("E"),
+            exchange="Binance",
+            symbol=msg.get('s'),
+            bid_price=float(msg.get('b')),
+            bid_qty= float(msg.get('B')),
+            ask_price=float(msg.get('a')),
+            ask_qty=float(msg.get('A')),
+        )
+        bbo =bbo.to_batch()
+        if get_utc_now_ms() -self.last_publish.get(msg.get('s'), 0) >10:
+            self.last_publish[msg.get('s')] = get_utc_now_ms()
+            self.db_client.batch_write(bbo)
 
     def _message_handler(self, msg):
         """
@@ -94,8 +126,9 @@ class BinanceWSCollector(BaseWSCollector):
     def run(self):
         self.load_instrument()
         self.client.register_callback(self._message_handler)
-        self.subscribe()
         self.client.start()
+        time.sleep(1)
+        self.subscribe()
 
     def connect(self):
         """

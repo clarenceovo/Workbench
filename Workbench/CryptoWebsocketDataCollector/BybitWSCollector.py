@@ -1,11 +1,13 @@
 import json
 import time
 import threading
-from Workbench.config.ConnectionConstant import BYBIT_FUTURES_WS_URL
+from Workbench.config.ConnectionConstant import BYBIT_FUTURES_WS_URL, QUEST_HOST, QUEST_PORT
 from Workbench.CryptoDataConnector.BybitDataCollector import BybitDataCollector
 from Workbench.CryptoWebsocketDataCollector import BaseWSCollector
 from Workbench.model.orderbook.BTreeOrderbook import OrderbookCollection, BTreeOrderbook, Order, Side
+from Workbench.model.dto.TopOfBook import TopOfBook
 from Workbench.util.TimeUtil import get_latency_ms
+from Workbench.transport.QuestClient import QuestDBClient
 
 BYBIT_WS_TOPICS = {
     "market": {
@@ -23,6 +25,12 @@ BYBIT_WS_TOPICS = {
 }
 
 
+class BatchInsert:
+    topic: str
+    symbol: dict
+    columns: dict
+
+
 class BybitWSCollector(BaseWSCollector):
     """
     Bybit WebSocket data collector.
@@ -34,6 +42,7 @@ class BybitWSCollector(BaseWSCollector):
         self.data_collector = BybitDataCollector()
         self.load_instrument()
         self._ping_thread = threading.Thread(target=self.send_ping, daemon=True)
+        self.db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
 
     def load_instrument(self):
         self.instrument_info = self.data_collector.get_contract_details()
@@ -63,20 +72,33 @@ class BybitWSCollector(BaseWSCollector):
     def ping(self):
         self.client.send({"op": "ping"})
 
+
     def _handler_orderbook(self, msg):
-        tyoe = msg.get("type")
         data = msg.get("data", {})
         symbol = data.get("s")
         cts = msg.get("cts", 0)
-        #self.logger.info("Latency: %s", get_latency_ms(cts))
         book = self.orderbook.get_orderbook(symbol)
         for bids in data.get("b", []):
             price, size = bids
-            book.insert_order(Order(float(price), float(size), Side.BID))
+            book.insert_order(Order(cts, float(price), float(size), Side.BID))
 
         for asks in data.get("a", []):
             price, size = asks
-            book.insert_order(Order(float(price), float(size), Side.ASK))
+            book.insert_order(Order(cts, float(price), float(size), Side.ASK))
+
+        bbo = TopOfBook(
+            timestamp=cts,
+            exchange="Bybit",
+            symbol=symbol,
+            bid_price=book.best_bid().price if book.best_bid() else None,
+            bid_qty=book.best_bid().qty if book.best_bid() else None,
+            ask_price=book.best_ask().price if book.best_ask() else None,
+            ask_qty=book.best_ask().qty if book.best_ask() else None
+        )
+        bbo = bbo.to_batch()
+
+
+        self.db_client.batch_write(bbo)
 
     def _message_handler(self, raw_msg):
         msg = json.loads(raw_msg)

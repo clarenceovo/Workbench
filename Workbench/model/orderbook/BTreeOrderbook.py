@@ -11,6 +11,7 @@ class Side(str, Enum):
 
 @dataclass
 class Order:
+    timestamp: int
     price: float
     qty: float
     side: Side

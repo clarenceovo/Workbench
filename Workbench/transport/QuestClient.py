@@ -1,12 +1,24 @@
 import requests
 import time
 import threading
+from dataclasses import dataclass
+from datetime import datetime
 from queue import Queue, Empty
 from Workbench.transport.BaseHandler import BaseHandler  # adjust if file name is different
 from questdb.ingress import Sender, TimestampNanos
+
+@dataclass
+class QuestBatch:
+    topic: str
+    symbol: dict
+    columns: dict
+    timestamp: datetime
+
+
 class QuestDBClient(BaseHandler):
-    def __init__(self, host, port,batch_size=100, flush_interval=1.0):
+    def __init__(self, host, port, batch_size=100, flush_interval=0.5):
         super().__init__("QuestDBClient")
+        self.is_active = True
         self.write_url = f"tcp::addr={host}:{port};"
         self.queue = Queue()
         self.batch_size = batch_size
@@ -15,48 +27,50 @@ class QuestDBClient(BaseHandler):
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.thread.start()
 
-
-    def write(self,table,symbol, columns,timestamp=None):
+    def write(self, table, symbol, columns, timestamp=None):
         if timestamp is None:
             timestamp = TimestampNanos.now()
         with Sender.from_conf(self.write_url) as sender:
             sender.row(table,
                        symbols=symbol,
                        columns=columns,
-                       at= timestamp)
+                       at=timestamp)
             sender.flush()
-    def _flush_batch(self, batch):
+
+    def batch_write(self, batch: QuestBatch):
         """
-        Send batch to QuestDB.
+        Write a batch of data to QuestDB.
+        :param batch: QuestBatch object containing the data to write.
         """
-        data = "\n".join(batch)
-        try:
-            response = requests.post(self.write_url, data=data)
-            if response.status_code != 204:
-                self.logger.error(f"Failed batch write: {response.text}")
-            else:
-                self.logger.info(f"Flushed {len(batch)} records")
-        except Exception as e:
-            self.logger.exception(f"Flush error: {e}")
+
+        self.queue.put_nowait(batch)
+
 
     def _run(self):
         """
-        Background daemon thread: batch + flush data to QuestDB.
+        Send batch to QuestDB.
         """
-        buffer = []
-        last_flush = time.time()
-
-        while not self._stop_event.is_set():
+        self.logger.info("QuestDBClient started batch writing loop...")
+        flush_count = 0
+        while self.is_active:
             try:
-                line = self.queue.get(timeout=self.flush_interval)
-                buffer.append(line)
-            except Empty:
-                pass  # just time-based flush
+                with Sender.from_conf(self.write_url) as sender:
+                    try:
+                        while not self.queue.empty():
+                            item = self.queue.get_nowait()
+                            ts= TimestampNanos.from_datetime(item.timestamp)
+                            sender.row(item.topic,
+                                       symbols=item.symbol,
+                                       columns=item.columns,
+                                       at=ts)
+                            sender.flush()
+                    except Exception as e:
+                        print(e)
+                    sender.flush()
+                    time.sleep(self.flush_interval)
 
-            if buffer and (len(buffer) >= self.batch_size or time.time() - last_flush >= self.flush_interval):
-                self._flush_batch(buffer)
-                buffer.clear()
-                last_flush = time.time()
+            except Empty:
+                continue
 
     def stop(self):
         """
