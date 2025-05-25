@@ -1,6 +1,6 @@
 import json
 import time
-from Workbench.config.ConnectionConstant import BINANCE_FUTURES_WS_URL, BINANCE_FUTURES_API_URL, QUEST_HOST , QUEST_PORT
+from Workbench.config.ConnectionConstant import BINANCE_FUTURES_WS_URL, BINANCE_FUTURES_API_URL, QUEST_HOST, QUEST_PORT
 from Workbench.CryptoDataConnector.BinanceDataCollector import BinanceDataCollector
 from Workbench.CryptoWebsocketDataCollector import BaseWSCollector
 from Workbench.util.TimeUtil import get_latency_ms, get_utc_now_ms
@@ -61,8 +61,12 @@ class BinanceWSCollector(BaseWSCollector):
 
     def subscribe(self):
         setattr(self, "orderbook", OrderbookCollection("Binance"))
-        #,
-        target_inst = ['btcusdt','ethusdt',"pendleusdt","solvusdt","pendleusdt"]  # TODO: load this from redis instrument list
+        # ,
+        target_inst = [
+            "grassusdt", "pendleusdt", "xmrusdt",
+            "solvusdt", "sxtusdt", "nilusdt", "degenusdt", "eptusdt",
+            "apeusdt",'solusdt'
+        ]  # TODO: load this from redis instrument list
         topic_template = BINANCE_WS_TOPICS['market']["book_ticker"]
         for inst in target_inst:
             self.orderbook.add_orderbook(inst)
@@ -96,19 +100,19 @@ class BinanceWSCollector(BaseWSCollector):
         :param msg:
         :return:
         """
-        #self.logger.info(msg)
-        #contract_size = self._get_contract_size(msg["s"])
+        # self.logger.info(msg)
+        # contract_size = self._get_contract_size(msg["s"])
         bbo = TopOfBook(
             timestamp=msg.get("E"),
             exchange="Binance",
             symbol=msg.get('s'),
             bid_price=float(msg.get('b')),
-            bid_qty= float(msg.get('B')),
+            bid_qty=float(msg.get('B')),
             ask_price=float(msg.get('a')),
             ask_qty=float(msg.get('A')),
         )
-        bbo =bbo.to_batch()
-        if get_utc_now_ms() -self.last_publish.get(msg.get('s'), 0) >10:
+        bbo = bbo.to_batch()
+        if get_utc_now_ms() - self.last_publish.get(msg.get('s'), 0) > 10:
             self.last_publish[msg.get('s')] = get_utc_now_ms()
             self.db_client.batch_write(bbo)
 

@@ -1,6 +1,7 @@
 # InfluxDB client (v2)
 influxdb-client>=1.40.0
 questdb==2.0.4
+
 # QuestDB via HTTP + PostgreSQL wire protocol
 requests>=2.31.0
 psycopg2-binary>=2.9.9

@@ -1,6 +1,8 @@
-import requests
+
 import time
 import threading
+import psycopg2
+import pandas as pd
 from dataclasses import dataclass
 from datetime import datetime
 from queue import Queue, Empty
@@ -16,16 +18,30 @@ class QuestBatch:
 
 
 class QuestDBClient(BaseHandler):
-    def __init__(self, host, port, batch_size=100, flush_interval=0.5):
+    def __init__(self, host, port, batch_size=100, flush_interval=0.5,read_only=False):
         super().__init__("QuestDBClient")
         self.is_active = True
+        self.host = host
+        self.port = port
+        if read_only:
+            self.port = 8812  # Use the default read port for QuestDB
+
         self.write_url = f"tcp::addr={host}:{port};"
         self.queue = Queue()
         self.batch_size = batch_size
         self.flush_interval = flush_interval
         self._stop_event = threading.Event()
-        self.thread = threading.Thread(target=self._run, daemon=True)
-        self.thread.start()
+        if read_only is False:
+            self.thread = threading.Thread(target=self._run, daemon=True)
+            self.thread.start()
+
+    def _get_pg_client(self):
+        self.read_conn = psycopg2.connect(host=self.host,
+                                          port=self.port,
+                                          dbname='qdb',
+                                          user='admin',
+                                          password='quest')
+
 
     def write(self, table, symbol, columns, timestamp=None):
         if timestamp is None:
@@ -45,6 +61,23 @@ class QuestDBClient(BaseHandler):
 
         self.queue.put_nowait(batch)
 
+    def execute_query(self, query: str) -> pd.DataFrame:
+        """
+        Execute a SQL SELECT query against QuestDB's HTTP API and return a Pandas DataFrame.
+        """
+        #use posgresql connector to execute query
+        self._get_pg_client()
+        with self.read_conn.cursor() as cursor:
+            cursor.execute(query)
+            columns = [desc[0] for desc in cursor.description]
+            data = cursor.fetchall()
+            df = pd.DataFrame(data, columns=columns)
+            #set timestamp as index if it exists
+            if 'timestamp' in df.columns:
+                df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ns')
+                df.set_index('timestamp', inplace=True)
+            self.read_conn.close()
+            return df
 
     def _run(self):
         """

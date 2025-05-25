@@ -52,7 +52,9 @@ class BybitWSCollector(BaseWSCollector):
 
     def subscribe(self):
         setattr(self, "orderbook", OrderbookCollection("Bybit"))
-        target_inst = ["BTCUSDT", "ETHUSDT", "PENDLEUSDT", "SOLVUSDT"]  # TODO: load from Redis
+        target_inst = ["BTCUSDT", "ETHUSDT", "PENDLEUSDT", "SOLVUSDT","SOLUSDT","GRASSUSDT", "PENDLEUSDT", "XMRUSDT",
+                        "SOLVUSDT", "SXTUSDT", "NILUSDT", "DEGENUSDT", "EPTUSDT",
+                        "APEUSDT"]  # TODO: load from Redis
         topic_template = BYBIT_WS_TOPICS["market"]["orderbook"]
         for inst in target_inst:
             topic = topic_template.format(depth=50, symbol=inst.upper())
