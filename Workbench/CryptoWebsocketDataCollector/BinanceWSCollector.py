@@ -4,6 +4,7 @@ from Workbench.config.ConnectionConstant import BINANCE_FUTURES_WS_URL, BINANCE_
 from Workbench.CryptoDataConnector.BinanceDataCollector import BinanceDataCollector
 from Workbench.CryptoWebsocketDataCollector import BaseWSCollector
 from Workbench.util.TimeUtil import get_latency_ms
+from Workbench.transport.QuestClient import QuestDBClient
 
 BINANCE_WS_TOPICS = {
     "market": {

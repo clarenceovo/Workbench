@@ -88,6 +88,7 @@ class BybitWSCollector(BaseWSCollector):
         self.client.register_callback(self._message_handler)
         self.client.start()
         self._ping_thread.start()
+        time.sleep(2)
         self.subscribe()
 
     def connect(self):

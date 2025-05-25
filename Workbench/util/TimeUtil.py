@@ -58,3 +58,18 @@ def get_latency_ms(event_ts: int) -> int:
     :return:
     """
     return event_ts - get_utc_now_ms()
+
+def get_utc_ts_ns():
+    """
+    Returns the current UTC time in nanoseconds.
+    :return: Current UTC time in nanoseconds.
+    """
+    return int(datetime.now(timezone.utc).timestamp() * 1_000_000_000)
+
+def ms_to_ns(ms: int) -> int:
+    """
+    Convert milliseconds to nanoseconds.
+    :param ms: Time in milliseconds.
+    :return: Time in nanoseconds.
+    """
+    return ms * 1_000_000

@@ -3,11 +3,11 @@ import time
 import threading
 from queue import Queue, Empty
 from Workbench.transport.BaseHandler import BaseHandler  # adjust if file name is different
-
+from questdb.ingress import Sender, TimestampNanos
 class QuestDBClient(BaseHandler):
-    def __init__(self, name, host, port,batch_size=100, flush_interval=1.0):
-        super().__init__(name)
-        self.write_url = f"{host}:{port}/imp"
+    def __init__(self, host, port,batch_size=100, flush_interval=1.0):
+        super().__init__("QuestDBClient")
+        self.write_url = f"tcp::addr={host}:{port};"
         self.queue = Queue()
         self.batch_size = batch_size
         self.flush_interval = flush_interval
@@ -16,22 +16,15 @@ class QuestDBClient(BaseHandler):
         self.thread.start()
 
 
-    def write_line_protocol(self, line: str):
-        """
-        Send a line-protocol string to QuestDB's HTTP /imp endpoint.
-        Example line: "trades,symbol=BTCUSD price=69000.1,volume=1.5 1687632120000000000"
-        """
-        try:
-            response = requests.post(self.write_url, data=line)
-            if response.status_code != 204:
-                self.logger.error(f"Failed to write: {response.text}")
-                return False
-            self.logger.info("Line written successfully")
-            return True
-        except Exception as e:
-            self.logger.exception(f"Error writing to QuestDB: {e}")
-            return False
-
+    def write(self,table,symbol, columns,timestamp=None):
+        if timestamp is None:
+            timestamp = TimestampNanos.now()
+        with Sender.from_conf(self.write_url) as sender:
+            sender.row(table,
+                       symbols=symbol,
+                       columns=columns,
+                       at= timestamp)
+            sender.flush()
     def _flush_batch(self, batch):
         """
         Send batch to QuestDB.
