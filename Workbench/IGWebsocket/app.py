@@ -3,6 +3,7 @@ import sys
 import lightstreamer.client
 from lightstreamer.client import LightstreamerClient, Subscription , SubscriptionListener, ConsoleLoggerProvider , ConsoleLogLevel
 from IGRestAPI.IGRestAPIHandler import IGRestAPIHandler
+from Workbench.config.CredentialConstant import IG_API_KEY
 from IGWSHandler import ItemUpdate
 import time
 import sys, logging
@@ -55,5 +56,5 @@ class IGWebsocketClient:
             self.client.subscribe(subscription)
 
 if __name__ == '__main__':
-    client = IGWebsocketClient(os.getenv('IG_USER'),os.getenv('IG_PASSWORD'),os.getenv('IG_API_KEY'),["CHART:CS.D.BITCOIN.CFD.IP:SECOND"])
+    client = IGWebsocketClient(os.getenv('IG_USER'),os.getenv('IG_PASSWORD'),IG_API_KEY,["CHART:CS.D.BITCOIN.CFD.IP:SECOND"])
     client.connect()
