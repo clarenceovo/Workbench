@@ -20,12 +20,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 
-class websocket_client(threading.Thread):
+class WebsocketClient(threading.Thread):
 
     def __init__(self, url, callback=None, header=None):
         logger.info("Initializing WebSocket client...")
         self.is_running = True
-        super(websocket_client, self).__init__()
+        super(WebsocketClient, self).__init__()
         self.incoming_queue = queue()
         self.outgoing_queue = queue()
         self.transportType = "websocket"

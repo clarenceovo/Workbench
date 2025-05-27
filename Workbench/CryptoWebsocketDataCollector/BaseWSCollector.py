@@ -1,5 +1,5 @@
 import logging
-from Workbench.transport.websocket_client import websocket_client
+from Workbench.transport.websocket_client import WebsocketClient
 from abc import ABC, abstractmethod
 
 class BaseWSCollector(ABC):
@@ -10,7 +10,7 @@ class BaseWSCollector(ABC):
         self.logger = logging.getLogger(name)
         self.name = name
         self.url = url
-        self.client = websocket_client(url)
+        self.client = WebsocketClient(url)
         self.data = None
         self.logger.info("Initializing WebSocket client...{}".format(url))
 

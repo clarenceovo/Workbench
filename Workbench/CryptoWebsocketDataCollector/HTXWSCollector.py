@@ -7,6 +7,7 @@ from Workbench.model.dto.TopOfBook import TopOfBook
 from Workbench.util.TimeUtil import get_latency_ms
 from Workbench.model.orderbook.BTreeOrderbook import OrderbookCollection, BTreeOrderbook, Order, Side
 from Workbench.transport.QuestClient import QuestDBClient
+from Workbench.util.OrderUtil import decode_gzip_message
 import gzip
 import json
 from io import BytesIO
@@ -100,7 +101,7 @@ class HtxWSCollector(BaseWSCollector):
         """
         Handle incoming messages from the WebSocket.
         """
-        msg = HtxWSCollector.decode_gzip_message(msg)
+        msg = decode_gzip_message(msg)
         if msg.get("ping"):
             self.ping(msg)
             return
@@ -159,12 +160,7 @@ class HtxWSCollector(BaseWSCollector):
         """
         pass
 
-    @staticmethod
-    def decode_gzip_message(message: bytes) -> dict:
-        buf = BytesIO(message)
-        with gzip.GzipFile(fileobj=buf) as f:
-            decoded_bytes = f.read()
-        return json.loads(decoded_bytes.decode('utf-8'))
+
 
 if __name__ == '__main__':
     obj = HtxWSCollector()

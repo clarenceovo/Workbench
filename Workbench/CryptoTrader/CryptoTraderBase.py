@@ -5,9 +5,11 @@ class CryptoTraderBase(ABC):
     Base class for CryptoTrader, providing common functionality.
     """
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, api_key: str = None, api_secret: str = None):
         self.create_ts = None
         self.exchange = name
+        self.api_key = api_key
+        self.api_secret = api_secret
 
     @abstractmethod
     def place_order(self, order):
@@ -26,4 +28,13 @@ class CryptoTraderBase(ABC):
         pass
 
     @abstractmethod
-    def
+    def get_account_status(self):
+        pass
+
+    @abstractmethod
+    def get_account_balance(self):
+        """
+        Abstract method to get the account status.
+        Must be implemented by subclasses.
+        """
+        pass

@@ -10,6 +10,7 @@ HTX_FUTURES_WS_URL = "wss://api.hbdm.com/linear-swap-ws"
 HTX_SPOT_API_URL = "https://api.hbdm.com/spot"
 HTX_FUTURES_API_URL = "https://api.hbdm.com/"
 HTX_MBP_API_URL = "wss://api-aws.huobi.pro/feed"
+HTX_TRADE_WS_URL = "wss://api.huobi.pro/ws/trade"
 
 # Bitget
 BITGET_SPOT_WS_URL = "wss://api.bitget.com/api/v1/stream"
@@ -39,3 +40,7 @@ QUEST_PORT = 9009
 #Influx
 
 #REDIS
+REDIS_HOST = "34.97.186.69"
+REDIS_PORT = 6379
+REDIS_DB = 0
+
