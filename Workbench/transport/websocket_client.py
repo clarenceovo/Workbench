@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 class WebsocketClient(threading.Thread):
 
     def __init__(self, url, callback=None, header=None):
-        logger.info("Initializing WebSocket client...")
+        logger.info("Initializing WebSocket client...URL: {}".format(url))
         self.is_running = True
         super(WebsocketClient, self).__init__()
         self.incoming_queue = queue()

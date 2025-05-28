@@ -11,7 +11,8 @@ HTX_SPOT_API_URL = "https://api.hbdm.com/spot"
 HTX_FUTURES_API_URL = "https://api.hbdm.com/"
 HTX_MBP_API_URL = "wss://api-aws.huobi.pro/feed"
 HTX_TRADE_WS_URL = "wss://api.huobi.pro/ws/trade"
-
+HTX_ACCOUNT_WS_URL = "wss://api.huobi.pro/ws/v2"
+HTX_SWAP_WS_URL = "wss://api.hbdm.com/linear-swap-trade"
 # Bitget
 BITGET_SPOT_WS_URL = "wss://api.bitget.com/api/v1/stream"
 BITGET_FUTURES_WS_URL = "wss://api.bitget.com/api/v1/stream"

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-
+import logging
 class CryptoTraderBase(ABC):
     """
     Base class for CryptoTrader, providing common functionality.
@@ -10,6 +10,7 @@ class CryptoTraderBase(ABC):
         self.exchange = name
         self.api_key = api_key
         self.api_secret = api_secret
+        self.logger = logging.getLogger(name)
 
     @abstractmethod
     def place_order(self, order):
