@@ -1,9 +1,11 @@
 from Workbench.CryptoTrader.CryptoTraderBase import CryptoTraderBase
-from Workbench.config.ConnectionConstant import HTX_SPOT_API_URL, HTX_FUTURES_API_URL , HTX_TRADE_WS_URL
+from Workbench.CryptoDataConnector.HTXDataCollector import HTXDataCollector
+from Workbench.config.ConnectionConstant import HTX_SPOT_API_URL, HTX_FUTURES_API_URL , HTX_TRADE_WS_URL, HTX_SWAP_WS_NOTIFICATION_URL
 from Workbench.config.CredentialConstant import HTX_API_KEY , HTX_API_SECRET
 from Workbench.util.OrderUtil import get_htx_signature
 from Workbench.transport.websocket_client import WebsocketClient
 from Workbench.model.order.Order import Order
+from Workbench.model.OrderEnum import OrderSide , OrderType,OrderDirection
 from Workbench.util.OrderUtil import decode_gzip_message
 from threading import Thread
 import pandas as pd
@@ -24,15 +26,51 @@ class HTXCryptoTrader(CryptoTraderBase):
         self.spot_base_url = HTX_SPOT_API_URL
         self.futures_base_url = HTX_FUTURES_API_URL
         self.account_url = f"{self.futures_base_url}/v1/account/accounts"
+        self.swap_info = HTXDataCollector().get_contract_details()
 
-        self.ws_client = WebsocketClient(
+
+        if start_ws:
+            self.ws_trade_client = WebsocketClient(
                 url=HTX_TRADE_WS_URL,
                 callback=self._trade_ws_handler)
-        if start_ws:
-            self.ws_thread = Thread(target=self.ws_client.start, daemon=True).start()
-            #self.ping_thread = Thread(target=self.send_ping, daemon=True).start()
+            self.ws_noti_client = WebsocketClient(
+                url=HTX_SWAP_WS_NOTIFICATION_URL,
+                callback=self._noti_ws_handler)
+            self.ws_thread = Thread(target=self.ws_trade_client.start, daemon=True).start()
+            self.ws_noti_thread = Thread(target=self.ws_noti_client.start, daemon=True).start()
+            self.logger.info("HTX WebSocket clients started.")
+            time.sleep(1)
             self._trade_ws_subscribe()
+            self._noti_ws_subscribe()
 
+            #todo : remove this after testing
+            """
+            order = Order(
+                exchange="HTX",
+                symbol="BTC-USDT",
+                direction=OrderDirection.BUY,
+                order_type=OrderType.MARKET,
+                quantity=1
+            )
+            self.ws_place_order(order)
+            """
+    def _noti_ws_subscribe(self):
+        """
+        Subscribe to HTX WebSocket notification channels.
+        This method subscribes to the notification channel for real-time updates.
+        """
+        self._noti_ws_authenticate()
+        self.logger.info("Subscribing to HTX WebSocket notification channels...")
+        self.ws_noti_client.send({
+            "op": "sub",
+            "topic": "orders.*",
+            "cid": "orders_sub_all"
+        })
+        self.ws_noti_client.send({
+            "op": "sub",
+            "topic": "positions_cross.*",
+            "cid": "positions_cross_sub_all"
+        })
     def _trade_ws_subscribe(self):
         """
         Subscribe to HTX WebSocket channels.
@@ -41,6 +79,7 @@ class HTXCryptoTrader(CryptoTraderBase):
         self._trade_ws_authenticate()
         self.logger.info("Subscribing to HTX WebSocket channels...")
 
+
     def _trade_ws_authenticate(self):
         """
         Authenticate the WebSocket connection with HTX.
@@ -48,8 +87,18 @@ class HTXCryptoTrader(CryptoTraderBase):
         """
         self.logger.info("Authenticating HTX WebSocket connection...")
         payload = get_htx_signature(self.api_key, self.api_secret,"GET", "api.hbdm.com", "/linear-swap-trade", {},is_ws=True)
-        self.ws_client.send(payload)
+        self.ws_trade_client.send(payload)
         self.logger.info("HTX WebSocket authentication message sent.")
+
+    def _noti_ws_authenticate(self):
+        """
+        Authenticate the WebSocket connection with HTX.
+        This method should be called after the WebSocket connection is established.
+        """
+        self.logger.info("Authenticating HTX Notification WebSocket connection...")
+        payload = get_htx_signature(self.api_key, self.api_secret,"GET", "api.hbdm.com", "/linear-swap-notification", {},is_ws=True)
+        self.ws_noti_client.send(payload)
+        self.logger.info("HTX Notification WebSocket authentication message sent.")
 
     def _trade_ws_handler(self, msg):
         """
@@ -57,20 +106,40 @@ class HTXCryptoTrader(CryptoTraderBase):
         This method should be overridden to handle WebSocket messages.
         """
         msg = decode_gzip_message(msg)
+
         if msg.get("op"):
             if msg.get("op") == "ping":
                 pong = {"op":"pong", "ts": msg["ts"]}
-                self.ws_client.send(pong)
+                self.ws_trade_client.send(pong)
         else:
             self.logger.info(f"Received message: {msg}")
 
-    def send_ping(self):
+    def _noti_ws_handler(self, msg):
         """
-        Send a ping message to the WebSocket server.
+        WebSocket handler for HTX notifications.
+        This method should be overridden to handle WebSocket messages.
         """
-        while True:
-            self.ws_client.send({"ping": int(time.time() * 1000)})
-            time.sleep(5)
+        msg = decode_gzip_message(msg)
+        if msg.get("op"):
+            if msg.get("op") == "ping":
+                pong = {"op":"pong", "ts": msg["ts"]}
+                self.ws_noti_client.send(pong)
+            elif msg.get("op") == "notify":
+                data = msg.get("data", {})
+                self.logger.info(f"Received position: {data}")
+
+    def ws_place_order(self, order: Order):
+        """
+        Place an order via WebSocket.
+        :param order: Order object containing order details.
+        :param is_market_order: Boolean indicating if the order is a market order.
+        :param mode: Order type, either 'limit' or 'market'.
+        :return: Response from the WebSocket server.
+        """
+        payload = order.to_htx_order()
+        self.logger.info(f"Placing order {order.client_order_id} via WebSocket: {payload}")
+        self.ws_client.send(payload)
+
 
     def place_order(self, order: Order, is_market_order: bool = False,mode: str = 'limit'):
         method = 'POST'

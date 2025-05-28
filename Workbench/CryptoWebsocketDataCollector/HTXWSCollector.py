@@ -35,8 +35,9 @@ class HtxWSCollector(BaseWSCollector):
     """
     orderbook: OrderbookCollection
 
-    def __init__(self, url=HTX_FUTURES_WS_URL):
+    def __init__(self, url=HTX_FUTURES_WS_URL,is_publish=False):
         super().__init__("HtxWS", url)
+        self.is_publish = is_publish
         self.data_collector = HTXDataCollector()
         self.load_instrument()
         self.db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
@@ -84,18 +85,18 @@ class HtxWSCollector(BaseWSCollector):
             price, size = ask
             orderbook.insert_order(Order(cts, float(price), float(size)*float(conversion), Side.ASK))
 
-        # Create and send TopOfBook message
-        bbo = TopOfBook(
-            timestamp=cts,
-            exchange="HTX",
-            symbol=symbol,
-            bid_price=orderbook.best_bid().price if orderbook.best_bid() else None,
-            bid_qty=orderbook.best_bid().qty if orderbook.best_bid() else None,
-            ask_price=orderbook.best_ask().price if orderbook.best_ask() else None,
-            ask_qty=orderbook.best_ask().qty if orderbook.best_ask() else None
-        )
+        if self.is_publish:
+            bbo = TopOfBook(
+                timestamp=cts,
+                exchange="HTX",
+                symbol=symbol,
+                bid_price=orderbook.best_bid().price if orderbook.best_bid() else None,
+                bid_qty=orderbook.best_bid().qty if orderbook.best_bid() else None,
+                ask_price=orderbook.best_ask().price if orderbook.best_ask() else None,
+                ask_qty=orderbook.best_ask().qty if orderbook.best_ask() else None
+            )
 
-        self.db_client.batch_write(bbo.to_batch())
+            self.db_client.batch_write(bbo.to_batch())
 
     def __message_handler(self, msg):
         """
@@ -109,7 +110,6 @@ class HtxWSCollector(BaseWSCollector):
             topic = msg["ch"]
             if topic.startswith("market") and "depth" in topic:
                 self._handle_depth_message(msg)
-
             """
             elif topic.startswith("market") and "trade" in topic:
                 self.handle_trade_message(msg)
@@ -121,29 +121,22 @@ class HtxWSCollector(BaseWSCollector):
                 self.handle_account_update(msg)
             """
 
-
-
     def disconnect(self):
         pass
 
 
-    def subscribe(self):
+    def subscribe(self,topic_list=["BTC-USDT"]):
         setattr(self, "orderbook", OrderbookCollection("HTX"))
-        target_inst = ["BTC-USDT","ETH-USDT"] #TODO: load this from redis instrument list
-        target_inst.extend(["GRASS-USDT", "PENDLE-USDT", "XMR-USDT", "SOLV-USDT", "SXT-USDT", "NIL-USDT", "DEGEN-USDT", "EPT-USDT",
-         "APE-USDT", "ALCH-USDT","SOL-USDT"])  # Add more instruments as needed
+
         topic_template = HTX_WS_TOPICS["market"]['depth']
-        for inst in target_inst:
+        for inst in topic_list:
             topic = topic_template.format(symbol=inst, step=0)
             self.orderbook.add_orderbook(inst)
             self.client.send({"sub": topic})
             self.logger.info(f"Subscribed to {topic}")
 
-
-
     def unsubscribe(self, topic: str):
         pass
-
 
     def ping(self,msg):
         self.client.send({"pong": msg["ping"]})
@@ -151,7 +144,6 @@ class HtxWSCollector(BaseWSCollector):
 
     def run(self):
         self.client.register_callback(self.__message_handler)
-        self.subscribe()
         self.client.start()
 
     def connect(self):
@@ -165,3 +157,8 @@ class HtxWSCollector(BaseWSCollector):
 if __name__ == '__main__':
     obj = HtxWSCollector()
     obj.run()
+    target_inst = ["BTC-USDT", "ETH-USDT"]  # TODO: load this from redis instrument list
+    target_inst.extend(
+        ["GRASS-USDT", "PENDLE-USDT", "XMR-USDT", "SOLV-USDT", "SXT-USDT", "NIL-USDT", "DEGEN-USDT", "EPT-USDT",
+         "APE-USDT", "ALCH-USDT", "SOL-USDT"])  # Add more instruments as needed
+    obj.subscribe(target_inst)

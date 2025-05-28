@@ -35,3 +35,4 @@ class SwapOrder:
             "short_price": self.short_price,
             "basis_bp": self.get_basis_bp()
         }
+
