@@ -8,7 +8,7 @@ from Workbench.util.OrderUtil import decode_gzip_message
 from threading import Thread
 import pandas as pd
 import requests
-
+import time
 
 DEFAULT_LEVERAGE_RATE = 5  # Default leverage rate for HTX
 class HTXCryptoTrader(CryptoTraderBase):
@@ -30,6 +30,26 @@ class HTXCryptoTrader(CryptoTraderBase):
                 callback=self._trade_ws_handler)
         if start_ws:
             self.ws_thread = Thread(target=self.ws_client.start, daemon=True).start()
+            #self.ping_thread = Thread(target=self.send_ping, daemon=True).start()
+            self._trade_ws_subscribe()
+
+    def _trade_ws_subscribe(self):
+        """
+        Subscribe to HTX WebSocket channels.
+        This method subscribes to the trade channel for real-time updates.
+        """
+        self._trade_ws_authenticate()
+        self.logger.info("Subscribing to HTX WebSocket channels...")
+
+    def _trade_ws_authenticate(self):
+        """
+        Authenticate the WebSocket connection with HTX.
+        This method should be called after the WebSocket connection is established.
+        """
+        self.logger.info("Authenticating HTX WebSocket connection...")
+        payload = get_htx_signature(self.api_key, self.api_secret,"GET", "api.hbdm.com", "/linear-swap-trade", {},is_ws=True)
+        self.ws_client.send(payload)
+        self.logger.info("HTX WebSocket authentication message sent.")
 
     def _trade_ws_handler(self, msg):
         """
@@ -37,15 +57,20 @@ class HTXCryptoTrader(CryptoTraderBase):
         This method should be overridden to handle WebSocket messages.
         """
         msg = decode_gzip_message(msg)
-        self.logger.info(f"Received message: {msg}")
-        if msg.get("ping"):
-            pong = {"pong": msg["ping"]}
-            self.ws_client.send(pong)
+        if msg.get("op"):
+            if msg.get("op") == "ping":
+                pong = {"op":"pong", "ts": msg["ts"]}
+                self.ws_client.send(pong)
         else:
-            # Handle other messages such as order updates, trades, etc.
             self.logger.info(f"Received message: {msg}")
-            # You can implement specific handling logic here based on the message type
 
+    def send_ping(self):
+        """
+        Send a ping message to the WebSocket server.
+        """
+        while True:
+            self.ws_client.send({"ping": int(time.time() * 1000)})
+            time.sleep(5)
 
     def place_order(self, order: Order, is_market_order: bool = False,mode: str = 'limit'):
         method = 'POST'

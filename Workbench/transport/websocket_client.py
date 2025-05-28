@@ -47,7 +47,9 @@ class WebsocketClient(threading.Thread):
         Send a message to the WebSocket server.
         :param msg: The message to send.
         """
+
         if self.is_running:
+
             self.outgoing_queue.put(msg)
         else:
             logger.error("WebSocket client is not running.")

@@ -19,7 +19,7 @@ def get_uuid(length:int=16) -> str:
     return str(uuid.uuid4()).replace("-", "")[:length]  # Return the first 16 characters of the UUID
 
 
-def get_htx_signature(api_key, api_secret, method, base_url, request_path, params):
+def get_htx_signature(api_key, api_secret, method, base_url, request_path, params,is_ws: bool = False) -> dict:
     """
     Generate a unique signature for HTX (Huobi Token Exchange).
 
@@ -39,6 +39,9 @@ def get_htx_signature(api_key, api_secret, method, base_url, request_path, param
     digest = hmac.new(api_secret.encode('utf-8'), payload.encode('utf-8'), hashlib.sha256).digest()
     signature = base64.b64encode(digest).decode()
     params['Signature'] = signature
+    if is_ws:
+        params['op'] = 'auth'
+        params['type'] = 'api'
     return params
 
 def decode_gzip_message(message: bytes) -> dict:
@@ -46,6 +49,7 @@ def decode_gzip_message(message: bytes) -> dict:
     with gzip.GzipFile(fileobj=buf) as f:
         decoded_bytes = f.read()
     return json.loads(decoded_bytes.decode('utf-8'))
+
 
 if __name__ == "__main__":
     # Example usage
