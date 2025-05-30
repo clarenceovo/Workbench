@@ -59,16 +59,14 @@ class BinanceWSCollector(BaseWSCollector):
     def disconnect(self):
         pass
 
-    def subscribe(self):
+    def subscribe(self,topic_list: list = None):
         setattr(self, "orderbook", OrderbookCollection("Binance"))
         # ,
-        target_inst = [
-            "grassusdt", "pendleusdt", "xmrusdt",
-            "solvusdt", "sxtusdt", "nilusdt", "degenusdt", "eptusdt",
-            "apeusdt",'solusdt'
-        ]  # TODO: load this from redis instrument list
+        if topic_list is None:
+            return
         topic_template = BINANCE_WS_TOPICS['market']["book_ticker"]
-        for inst in target_inst:
+        for inst in topic_list:
+            self.logger.info("Subscribing to topic {}".format(inst))
             self.orderbook.add_orderbook(inst)
             topic = topic_template.format(symbol=inst)
             self.client.send({

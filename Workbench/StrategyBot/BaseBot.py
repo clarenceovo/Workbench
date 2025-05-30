@@ -1,6 +1,8 @@
 from Workbench.transport.redis_client import RedisClient
 from Workbench.util.TimeUtil import get_utc_now_ms
 from Workbench.model.config.SwapArbConfig import SwapArbConfig
+from Workbench.CryptoDataConnector import *
+from Workbench.CryptoWebsocketDataCollector import *
 import json
 import logging
 class BaseBot(object):
@@ -15,6 +17,7 @@ class BaseBot(object):
         self.last_ts = get_utc_now_ms()
         self.bot_config = None
         self.reload_config()
+        self.market_connector = {}
 
     def reload_config(self):
         """
@@ -25,7 +28,7 @@ class BaseBot(object):
             raise ValueError("Redis connection is not initialized.")
         if self.redis_conn.client.ping() is False:
             raise ConnectionError("Redis connection is not available.")
-        KEY = "StrategyBot:SwapArb:{}".format(self.bot_id)
+        KEY = "StrategyBot:SwapArb:{}".format(self.bot_id) #TODO : change the strategy name to variable
         t = self.redis_conn.client.get(KEY)
         if t is None:
             raise ValueError("Configuration not found in Redis for bot_id: {}".format(self.bot_id))
@@ -39,3 +42,30 @@ class BaseBot(object):
         Refresh the last timestamp to the current UTC time in milliseconds.
         """
         self.last_ts = get_utc_now_ms()
+
+    def init_market_collector(self,exchange_name:str):
+        """
+        Initialize the market data collector for the specified exchange.
+        This method should be implemented by subclasses.
+        :param exchange_name: The name of the exchange to collect market data from.
+
+        set attribute `self.market_data_collector` to an instance of the market data collector.
+        """
+        if exchange_name == "Binance":
+            self.market_connector['Binance'] = BinanceWSCollector()
+        elif exchange_name == "HTX":
+            self.market_connector['HTX'] = HtxWSCollector()
+        elif exchange_name == "Bybit":
+            self.market_connector['Bybit'] = BybitWSCollector()
+        elif exchange_name == "Kucoin":
+            raise ValueError("Kucoin market collector is not implemented yet.")
+        else:
+            raise ValueError("Unknown exchange name: {}".format(exchange_name))
+
+    def init_trader(self, exchange_name:str):
+        """
+        Initialize the trader for the specified exchange.
+        This method should be implemented by subclasses.
+        :param exchange_name: The name of the exchange to trade on.
+        """
+        pass
