@@ -60,5 +60,3 @@ if __name__ == '__main__':
     print(collector.get_contract_details())
     print(collector.get_open_interest())
     print(collector.get_funding())
-    print(collector.get_time())
-    # Note: get_kline and get_depth are not implemented in this collector.

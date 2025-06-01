@@ -8,16 +8,14 @@ from Workbench.util.TimeUtil import get_latency_ms
 from Workbench.model.orderbook.BTreeOrderbook import OrderbookCollection, BTreeOrderbook, Order, Side
 from Workbench.transport.QuestClient import QuestDBClient
 from Workbench.util.OrderUtil import decode_gzip_message
-import gzip
-import json
-from io import BytesIO
+
 
 HTX_WS_TOPICS = {
     "market": {
         "kline": "market.{symbol}.kline.{period}",               # e.g. period: 1min, 5min
         "depth": "market.{symbol}.depth.step{step}",             # e.g. step: step0, step1
         "trade": "market.{symbol}.trade.detail",
-        "ticker": "market.{symbol}.detail",
+        "ticker": "market.{symbol}.bbo",
         "basis": "market.{symbol}.basis.{period}"                # e.g. period: 1min, 5min
     },
     "account": {
@@ -41,6 +39,7 @@ class HtxWSCollector(BaseWSCollector):
         self.data_collector = HTXDataCollector()
         self.load_instrument()
         self.db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
+        self.tickerbook = {}
 
 
     def load_instrument(self):
@@ -76,6 +75,8 @@ class HtxWSCollector(BaseWSCollector):
 
         conversion = self._get_contract_size(symbol)
         # Process bids
+        orderbook.clear_bids()
+        orderbook.clear_asks()
         for bid in tick.get("bids", []):
             price, size = bid
             orderbook.insert_order(Order(cts, float(price), float(size)*float(conversion), Side.BID))
@@ -85,17 +86,18 @@ class HtxWSCollector(BaseWSCollector):
             price, size = ask
             orderbook.insert_order(Order(cts, float(price), float(size)*float(conversion), Side.ASK))
 
+        bbo = TopOfBook(
+            timestamp=cts,
+            exchange="HTX",
+            symbol=symbol,
+            bid_price=orderbook.best_bid().price if orderbook.best_bid() else None,
+            bid_qty=orderbook.best_bid().qty if orderbook.best_bid() else None,
+            ask_price=orderbook.best_ask().price if orderbook.best_ask() else None,
+            ask_qty=orderbook.best_ask().qty if orderbook.best_ask() else None
+        )
+        symbol =symbol.replace("-", "")
+        self.tickerbook[symbol] = bbo
         if self.is_publish:
-            bbo = TopOfBook(
-                timestamp=cts,
-                exchange="HTX",
-                symbol=symbol,
-                bid_price=orderbook.best_bid().price if orderbook.best_bid() else None,
-                bid_qty=orderbook.best_bid().qty if orderbook.best_bid() else None,
-                ask_price=orderbook.best_ask().price if orderbook.best_ask() else None,
-                ask_qty=orderbook.best_ask().qty if orderbook.best_ask() else None
-            )
-
             self.db_client.batch_write(bbo.to_batch())
 
     def __message_handler(self, msg):
@@ -110,6 +112,8 @@ class HtxWSCollector(BaseWSCollector):
             topic = msg["ch"]
             if topic.startswith("market") and "depth" in topic:
                 self._handle_depth_message(msg)
+            elif topic.startswith("market") and "bbo" in topic:
+                self._handle_ticker_message(msg['tick'])
             """
             elif topic.startswith("market") and "trade" in topic:
                 self.handle_trade_message(msg)
@@ -121,6 +125,24 @@ class HtxWSCollector(BaseWSCollector):
                 self.handle_account_update(msg)
             """
 
+    def _handle_ticker_message(self, msg):
+        symbol = msg.get("ch").split(".")[1] if "." in msg.get("ch", "") else ""
+        bid = msg.get("bid", [None, None])
+        ask = msg.get("ask", [None, None])
+        bbo = TopOfBook(
+            timestamp=msg.get("ts", 0),
+            exchange="HTX",
+            symbol=symbol,
+            bid_price=bid[0] if bid else None,
+            bid_qty=bid[1] if bid else None,
+            ask_price=ask[0] if ask else None,
+            ask_qty=ask[1] if ask else None,
+        )
+        symbol =symbol.replace("-", "")
+        self.tickerbook[symbol] = bbo
+        #if self.is_publish:
+        #    self.db_client.batch_write(bbo.to_batch())
+
     def disconnect(self):
         pass
 
@@ -128,7 +150,7 @@ class HtxWSCollector(BaseWSCollector):
     def subscribe(self,topic_list=["BTC-USDT"]):
         setattr(self, "orderbook", OrderbookCollection("HTX"))
 
-        topic_template = HTX_WS_TOPICS["market"]['depth']
+        topic_template = HTX_WS_TOPICS["market"]['ticker']
         for inst in topic_list:
             topic = topic_template.format(symbol=inst, step=0)
             self.orderbook.add_orderbook(inst)

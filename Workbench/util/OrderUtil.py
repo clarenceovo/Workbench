@@ -50,6 +50,15 @@ def decode_gzip_message(message: bytes) -> dict:
         decoded_bytes = f.read()
     return json.loads(decoded_bytes.decode('utf-8'))
 
+def get_spread_bp(bp: float, sp: float) -> float:
+    """
+    Calculate the spread based on bid price and spread percentage.
+
+    :param bp: Bid price
+    :param sp: Spread percentage (e.g., 0.01 for 1%)
+    :return: Calculated spread
+    """
+    return bp * sp if bp > 0 else 0.0
 
 if __name__ == "__main__":
     # Example usage

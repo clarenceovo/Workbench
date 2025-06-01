@@ -46,6 +46,8 @@ class BinanceWSCollector(BaseWSCollector):
         self.data_collector = BinanceDataCollector()
         self.load_instrument()
         self.last_publish = {}
+        self.tickerbook = {}
+
         self.db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
 
     def load_instrument(self):
@@ -61,9 +63,9 @@ class BinanceWSCollector(BaseWSCollector):
 
     def subscribe(self,topic_list: list = None):
         setattr(self, "orderbook", OrderbookCollection("Binance"))
-        # ,
         if topic_list is None:
             return
+        topic_list = [inst.replace("-", "").lower() for inst in topic_list]
         topic_template = BINANCE_WS_TOPICS['market']["book_ticker"]
         for inst in topic_list:
             self.logger.info("Subscribing to topic {}".format(inst))
@@ -109,6 +111,7 @@ class BinanceWSCollector(BaseWSCollector):
             ask_price=float(msg.get('a')),
             ask_qty=float(msg.get('A')),
         )
+        self.tickerbook[msg.get('s')] = bbo
         bbo = bbo.to_batch()
         if get_utc_now_ms() - self.last_publish.get(msg.get('s'), 0) > 10:
             self.last_publish[msg.get('s')] = get_utc_now_ms()
@@ -118,11 +121,12 @@ class BinanceWSCollector(BaseWSCollector):
         """
         Handle incoming messages from the WebSocket.
         """
-        # self.logger.info("Received message: %s", msg)
+        #self.logger.info("Received message: %s", msg)
         msg = json.loads(msg)
         if msg.get("stream", None):
             topic = msg["stream"]
             if "bookTicker" in topic:
+
                 self._handler_book_ticker(msg['data'])
 
     def run(self):
