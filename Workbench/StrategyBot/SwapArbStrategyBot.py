@@ -33,6 +33,11 @@ class SwapArbStrategyBot(BaseBot):
         self.market_connector[self.bot_config.exchange_a].subscribe(self.bot_config.exchange_a_market_list)
         self.market_connector[self.bot_config.exchange_b].subscribe(self.bot_config.exchange_b_market_list)
 
+
+
+    def cal(self):
+        pass
+
 if __name__ == "__main__":
     # Example usage
     client = RedisClient(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, password=REDIS_PASSWORD)
