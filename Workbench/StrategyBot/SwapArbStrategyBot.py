@@ -4,14 +4,19 @@ from Workbench.model.config.SwapArbConfig import SwapArbConfig
 from Workbench.transport.redis_client import RedisClient
 from Workbench.config.ConnectionConstant import REDIS_HOST , REDIS_PORT, REDIS_DB , REDIS_PASSWORD
 from Workbench.StrategyBot.BaseBot import BaseBot
+from Workbench.util.TimeUtil import get_timestamp
+
+
 class SwapArbStrategyBot(BaseBot):
     bot_config : SwapArbConfig
     def __init__(self, redis_conn: RedisClient, bot_id:str):
         super().__init__(redis_conn, bot_id)
         self.logger.info("Initializing SwapArbStrategyBot...")
+        self.event_dict = {}
         #self.logger.info(f'SwapArbStrategyBot initialized with bot_id: {bot_id}.Config: {self.bot_config}')
         self.init_market_collector(self.bot_config.exchange_a)
         self.init_market_collector(self.bot_config.exchange_b)
+        self.spread_book = {}
         self.init_bot()
 
     def init_bot(self):
@@ -63,12 +68,27 @@ class SwapArbStrategyBot(BaseBot):
 
             #calcuate the spread
             spread_bp = (bid_a - ask_b) / ask_b * 10000 if ask_b != 0 else 0
+            self.spread_book[symbol] = spread_bp
             if abs(spread_bp) > self.bot_config.upper_bound_entry_bp:
-                self.logger.info(f"Arbitrage opportunity found for {symbol}: "
-                                 f"Bid on {self.bot_config.exchange_a}: {bid_a}, "
-                                 f"Ask on {self.bot_config.exchange_b}: {ask_b}, "
-                                 f"Spread: {spread_bp:.2f}%")
+
+                if get_timestamp() - self.event_dict.get(symbol,0) > 1000 or symbol not in self.event_dict:
+                    self.logger.info(f"Arbitrage opportunity found for {symbol}: "
+                                     f"Bid on {self.bot_config.exchange_a}: {bid_a}, "
+                                     f"Ask on {self.bot_config.exchange_b}: {ask_b}, "
+                                     f"Spread: {spread_bp:.2f}")
+                    self.event_dict[symbol] = get_timestamp()
                 # Here you can implement the logic to execute trades based on the arbitrage opportunity
+
+                """
+                1. Send order to exchange A to buy at bid price
+                2. Send order to exchange B to sell at ask price
+                3. Monitor the orders and ensure they are filled (if mode is market)
+                4. If both orders are filled, log the profit and create SwapPosition 
+                5. Update BBO and cal the SwapPosition frequently
+                
+                """
+            else:
+                pass
 
 
 
