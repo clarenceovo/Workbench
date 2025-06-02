@@ -1,0 +1,15 @@
+{
+  "apps": [
+    {
+      "name": "HLSnapshotter",
+      "script": "Workbench/Cronjob/HLSnapshotter.py",
+      "interpreter": "~/miniconda3/envs/CryptoBot/bin/python",
+      "watch": false,
+      "autorestart": true,
+      "restart_delay": 1,
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  ]
+}
