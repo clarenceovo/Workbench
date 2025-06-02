@@ -9,11 +9,6 @@ from Workbench.transport.QuestClient import QuestDBClient
 from Workbench.config.ConnectionConstant import QUEST_PORT , QUEST_HOST
 from Workbench.util.TimeUtil import get_timestamp, get_now, get_now_utc
 
-config = {
-    "name": "HLSnapshotter",
-    "funding_interval": 60, # minutes
-    "oi_interval": 5, # minutes
-}
 
 def get_funding(client: HyperliquidDataCollector , db_client: QuestDBClient):
     print("Getting funding from Hyperliquid")
@@ -48,8 +43,8 @@ if __name__ == "__main__":
     db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
     data_client = HyperliquidDataCollector()
     #register the collector
-    schedule.every(config["funding_interval"]).minutes.do(lambda: get_open_interest(data_client, db_client))
-    schedule.every(config["oi_interval"]).minutes.do(lambda: get_funding(data_client, db_client))
+    schedule.every().minute.at(":00").do(lambda: get_open_interest(data_client, db_client))
+    schedule.every().hour.at(":00").do(lambda: get_funding(data_client, db_client))
     schedule.run_all()
     while True:
         try:
