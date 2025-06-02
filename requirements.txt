@@ -21,3 +21,6 @@ matplotlib>=3.8.4
 
 #lightstreamer-client-lib==2.2.2
 schedule>=1.2.0
+
+redis
+python-binance

@@ -56,6 +56,7 @@ class WebsocketClient(threading.Thread):
 
     def on_error(self, ws, message):
         logger.error(message)
+        self.is_running = False
 
     def register_callback(self, callback):
         """
@@ -91,6 +92,7 @@ class WebsocketClient(threading.Thread):
     def on_close(self, ws, close_status_code, close_msg):
         logger.error(close_msg)
         logger.error("websocket is closed.")
+        self.is_running = False
 
     def stop(self):
         logger.info("Stopping Websocket Client...")
@@ -106,7 +108,7 @@ class WebsocketClient(threading.Thread):
                                           on_open=self.on_open,
                                           header=self.header if self.header is not None else None)
         self.webChannel.on_open = self.on_open(self.webChannel)
-        self.webChannel.run_forever()
+        self.webChannel.run_forever(sslopt={"cert_reqs": 0}) #disable SSL certificate verification
 
     def messsagePraser(self, msg):
         return json.dumps(msg)

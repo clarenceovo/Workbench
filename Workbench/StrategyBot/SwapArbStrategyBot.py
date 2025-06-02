@@ -1,6 +1,7 @@
 import time
-
+import os
 from Workbench.model.config.SwapArbConfig import SwapArbConfig
+from Workbench.util.PsUtil import kill_process
 from Workbench.transport.redis_client import RedisClient
 from Workbench.config.ConnectionConstant import REDIS_HOST , REDIS_PORT, REDIS_DB , REDIS_PASSWORD
 from Workbench.StrategyBot.BaseBot import BaseBot
@@ -10,6 +11,8 @@ from Workbench.util.TimeUtil import get_timestamp
 class SwapArbStrategyBot(BaseBot):
     bot_config : SwapArbConfig
     def __init__(self, redis_conn: RedisClient, bot_id:str):
+        #set cpu affinity to the core 1-4
+
         super().__init__(redis_conn, bot_id)
         self.logger.info("Initializing SwapArbStrategyBot...")
         self.event_dict = {}
@@ -48,12 +51,21 @@ class SwapArbStrategyBot(BaseBot):
         while self.is_active:
             try:
                 self.cal()
-                time.sleep(0.01)
+                time.sleep(0.0001)
             except Exception as e:
                 self.logger.error(f"Error in SwapArbStrategyBot: {e}")
                 time.sleep(5)
 
+    def check_connection(self):
+        if self.market_connector[self.bot_config.exchange_a].client.is_running and \
+                self.market_connector[self.bot_config.exchange_b].client.is_running:
+            pass
+        else:
+            self.logger.error("One of the exchanges is not active. killing the bot...")
+            kill_process()
+
     def cal(self):
+        self.check_connection()
         #self.logger.info("Calculating swap arbitrage opportunities...")
         bbo_a = self.market_connector[self.bot_config.exchange_a].tickerbook
         bbo_b = self.market_connector[self.bot_config.exchange_b].tickerbook
@@ -68,6 +80,7 @@ class SwapArbStrategyBot(BaseBot):
 
             #calcuate the spread
             spread_bp = (bid_a - ask_b) / ask_b * 10000 if ask_b != 0 else 0
+            spread_bp_ask = (bid_b - ask_a) / ask_b * 10000 if ask_b != 0 else 0
             self.spread_book[symbol] = spread_bp
             if abs(spread_bp) > self.bot_config.upper_bound_entry_bp:
 
@@ -77,7 +90,6 @@ class SwapArbStrategyBot(BaseBot):
                                      f"Ask on {self.bot_config.exchange_b}: {ask_b}, "
                                      f"Spread: {spread_bp:.2f}")
                     self.event_dict[symbol] = get_timestamp()
-                # Here you can implement the logic to execute trades based on the arbitrage opportunity
 
                 """
                 1. Send order to exchange A to buy at bid price
@@ -94,5 +106,9 @@ class SwapArbStrategyBot(BaseBot):
 
 if __name__ == "__main__":
     # Example usage
+    import sys
     client = RedisClient(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, password=REDIS_PASSWORD)
-    bot = SwapArbStrategyBot(client, bot_id="ALT1")
+    args = sys.argv[1:]
+    bot_id = args[0] if len(args) > 0 else "ALT1"
+    print(f"Bot ID: {bot_id}")
+    bot = SwapArbStrategyBot(client, bot_id=bot_id)
