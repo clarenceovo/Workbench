@@ -4,7 +4,7 @@ from Workbench.transport.QuestClient import QuestBatch
 
 @dataclass
 class FundingRate:
-    timestamp: datetime
+    timestamp: int
     exchange: str
     symbol: str
     annual_funding_rate: float
@@ -29,7 +29,7 @@ class FundingRate:
                 columns={
                     "annual_funding_rate": self.annual_funding_rate
                 },
-                timestamp=self.timestamp,
+                timestamp=datetime.fromtimestamp(self.timestamp),
             )
         except Exception as e:
             print(f"Error converting FundingRate to batch: {e}")

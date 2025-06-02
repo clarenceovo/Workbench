@@ -1,4 +1,3 @@
-import requests
 import pandas as pd
 from Workbench.CryptoDataConnector.BaseDataCollector import BaseDataCollector
 from Workbench.config.ConnectionConstant import BINANCE_FUTURES_API_URL , BINANCE_SPOT_WS_URL
@@ -57,3 +56,4 @@ class BinanceDataCollector(BaseDataCollector):
         resp = self.session.get(url)
         resp.raise_for_status()
         return resp.json()["serverTime"]
+
