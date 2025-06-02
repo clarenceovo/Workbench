@@ -3,7 +3,7 @@ import os
 from Workbench.model.config.SwapArbConfig import SwapArbConfig
 from Workbench.util.PsUtil import kill_process
 from Workbench.transport.redis_client import RedisClient
-from Workbench.config.ConnectionConstant import REDIS_HOST , REDIS_PORT, REDIS_DB , REDIS_PASSWORD
+from Workbench.config.ConnectionConstant import REDIS_HOST , REDIS_PORT, REDIS_DB , REDIS_PASSWORD , QUEST_HOST , QUEST_PORT
 from Workbench.StrategyBot.BaseBot import BaseBot
 from Workbench.util.TimeUtil import get_timestamp
 
@@ -12,7 +12,7 @@ class SwapArbStrategyBot(BaseBot):
     bot_config : SwapArbConfig
     def __init__(self, redis_conn: RedisClient, bot_id:str):
         #set cpu affinity to the core 1-4
-
+        self.publish_mode = False
         super().__init__(redis_conn, bot_id)
         self.logger.info("Initializing SwapArbStrategyBot...")
         self.event_dict = {}
@@ -51,7 +51,7 @@ class SwapArbStrategyBot(BaseBot):
         while self.is_active:
             try:
                 self.cal()
-                time.sleep(0.0001)
+                time.sleep(0.1)
             except Exception as e:
                 self.logger.error(f"Error in SwapArbStrategyBot: {e}")
                 time.sleep(5)
