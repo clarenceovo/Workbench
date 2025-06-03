@@ -40,11 +40,13 @@ class BybitDataCollector(BaseDataCollector):
         ret =  resp.json().get("result", {}).get("list", [])
         return pd.DataFrame.from_dict(ret)
 
-    def get_open_interest(self, symbol="BTCUSDT", category="linear"):
+    def get_open_interest(self, symbol="BTCUSDT", category="linear",limit=50):
         url = f"{self.base_url}/v5/market/open-interest"
         params = {
             "symbol": symbol,
-            "category": category
+            "category": category,
+            "intervalTime": "5min",  # 5 minute interval
+            "limit": limit  # Limit to the latest data point
         }
         resp = requests.get(url, params=params, headers=self.headers)
         resp.raise_for_status()

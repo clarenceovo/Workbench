@@ -1,5 +1,5 @@
 import time
-
+from datetime import datetime
 import schedule
 from Workbench.CryptoDataConnector.BybitDataCollector import BybitDataCollector
 from Workbench.model.dto.FundingRate import FundingRate
@@ -8,6 +8,8 @@ from Workbench.transport.QuestClient import QuestDBClient
 from Workbench.config.ConnectionConstant import QUEST_PORT, QUEST_HOST
 from Workbench.util.TimeUtil import get_timestamp, get_now, get_now_utc
 
+target_base = ["BTC", "ETH", "SOL", "XRP", "ADA", "DOT", "LTC", "LINK", "POL",
+               "AVAX","AAVE", "UNI", "XLM", "SUI", "ALGO", "XMR","DOGE",]
 
 def get_funding(client: BybitDataCollector, db_client: QuestDBClient):
     print("Getting funding from Bybit")
@@ -27,27 +29,34 @@ def get_funding(client: BybitDataCollector, db_client: QuestDBClient):
 
 def get_open_interest(client: BybitDataCollector, db_client: QuestDBClient):
     print("Fetching open interest data from Bybit...")
-    open_interest = client.get_open_interest()
-    if open_interest:
-        for coin, oi in open_interest.items():
-            open_interest = OpenInterest(
-                timestamp=get_now_utc(),
-                exchange="Bybit",
-                symbol=coin,
-                open_interest=round(oi, 2),
-            )
-            oi_batch = open_interest.to_batch()
-            if oi_batch:
-                db_client.batch_write(oi_batch)
+    contract = client.get_contract_details()
+    contract = contract[contract['baseCoin'].isin(target_base)]
+    contract = contract[contract['quoteCoin'] == "USDT"]
+    contract = contract[contract['contractType'] == "LinearPerpetual"]
+    symbols = list(contract['symbol'].values)
+    for sym in symbols:
+        open_interest = client.get_open_interest(symbol=sym, limit=1)
+        if open_interest:
+            open_interest = open_interest['list']
+            for item in open_interest:
+
+                open_interest = OpenInterest(
+                    timestamp=datetime.fromtimestamp(int(item['timestamp']) / 1000),
+                    exchange="Bybit",
+                    symbol=sym,
+                    open_interest=round(float(item['openInterest']), 2),
+                )
+                oi_batch = open_interest.to_batch()
+                if oi_batch:
+                    db_client.batch_write(oi_batch)
 
 
 if __name__ == "__main__":
     db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
     data_client = BybitDataCollector()
     # Register the collector
-    schedule.every().minute.at(":00").do(lambda: get_open_interest(data_client, db_client))
-    schedule.every().hour.at(":00").do(lambda: get_funding(data_client, db_client))
-    schedule.run_all()
+    schedule.every(5).minutes.at(":00").do(lambda: get_open_interest(data_client, db_client))
+    #schedule.every().hour.at(":00").do(lambda: get_funding(data_client, db_client))
     while True:
         try:
             schedule.run_pending()
