@@ -33,6 +33,7 @@ BYBIT_SPOT_API_URL = "https://api.bybit.com"
 BYBIT_FUTURES_API_URL = "https://api.bybit.com"
 
 # Hyperliquid
+HYPERLIQUID_FUTURES_API_URL = "https://api.hyperliquid.xyz/"
 HYPERLIQUID_SPOT_WS_URL = "wss://api.hyperliquid.xyz/ws"
 HYPERLIQUID_FUTURES_WS_URL = "wss://api.hyperliquid.xyz/ws"
 
