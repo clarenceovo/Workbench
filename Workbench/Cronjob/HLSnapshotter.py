@@ -16,7 +16,7 @@ def get_funding(client: HyperliquidDataCollector , db_client: QuestDBClient):
     if funding_rate:
         for coin, rate in funding_rate.items():
             funding_rate = FundingRate(
-                timestamp=get_now_utc(),
+                timestamp=get_timestamp(),
                 exchange="Hyperliquid",
                 symbol=coin,
                 annual_funding_rate=round(rate * 100, 4),
