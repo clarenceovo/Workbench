@@ -23,7 +23,7 @@ def get_funding(client: BinanceDataCollector, db_client: QuestDBClient):
                 funding_rate = FundingRate(
                     timestamp=get_now_utc(),
                     exchange="Binance",
-                    symbol=sym,
+                    symbol=sym,  # Binance uses USDT for perpetuals
                     annual_funding_rate=round(float(rate["fundingRate"]) * 100, 4),
                 )
                 funding_batch = funding_rate.to_batch()
@@ -38,7 +38,8 @@ def get_open_interest(client: BinanceDataCollector, db_client: QuestDBClient):
     if details is None or details.empty:
         print("No contract details found.")
         return
-    symbol = details["symbol"].values
+    symbol = list(details["symbol"].values[:10])
+    symbol.extend(['SOLUSDT','SUIUSDT','DOGEUSDT'])
     for sym in symbol:
         print(f"Fetching open interest for {sym}")
         open_interest = client.get_open_interest(symbol=sym)
@@ -52,19 +53,17 @@ def get_open_interest(client: BinanceDataCollector, db_client: QuestDBClient):
             oi_batch = open_interest.to_batch()
             if oi_batch:
                 db_client.batch_write(oi_batch)
-        time.sleep(1)
+        time.sleep(3)
 
 
 if __name__ == "__main__":
     db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
     data_client = BinanceDataCollector()
     # Register the collector
-    get_funding(data_client, db_client)
-    #get_open_interest(data_client, db_client)
 
-    #schedule.every(10).minutes.at(":00").do(lambda: get_open_interest(data_client, db_client))
+    schedule.every(30).minutes.at(":00").do(lambda: get_open_interest(data_client, db_client))
     #schedule.every().hour.at(":00").do(lambda: get_funding(data_client, db_client))
-    #schedule.run_all()
+    schedule.run_all()
     while True:
         try:
             schedule.run_pending()
