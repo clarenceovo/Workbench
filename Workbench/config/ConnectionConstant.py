@@ -3,7 +3,7 @@ BINANCE_SPOT_WS_URL = "wss://stream.binance.com:9443/ws"
 BINANCE_FUTURES_WS_URL = "wss://fstream.binance.com/stream"
 BINANCE_SPOT_API_URL = "https://api.binance.com"
 BINANCE_FUTURES_API_URL = "https://fapi.binance.com"
-
+BINANCE_FUTURE_TRADE_WS_URL = "wss://ws-fapi.binance.com/ws-fapi/v1"
 # HTX (Huobi)
 HTX_SPOT_WS_URL = "wss://api.hbdm.com/ws"
 HTX_FUTURES_WS_URL = "wss://api.hbdm.com/linear-swap-ws"

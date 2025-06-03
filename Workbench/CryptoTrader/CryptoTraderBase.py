@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
+from requests import Session
 class CryptoTraderBase(ABC):
     """
     Base class for CryptoTrader, providing common functionality.
@@ -10,6 +11,7 @@ class CryptoTraderBase(ABC):
         self.exchange = name
         self.api_key = api_key
         self.api_secret = api_secret
+        self.session = Session()
         self.logger = logging.getLogger(name)
 
     @abstractmethod
