@@ -39,7 +39,7 @@ def get_open_interest(client: BinanceDataCollector, db_client: QuestDBClient):
         print("No contract details found.")
         return
     symbol = list(details["symbol"].values[:10])
-    symbol.extend(['SOLUSDT','SUIUSDT','DOGEUSDT'])
+    symbol.extend(['SOLUSDT','SUIUSDT','DOGEUSDT',"BNBUSDT"])
     for sym in symbol:
         print(f"Fetching open interest for {sym}")
         open_interest = client.get_open_interest(symbol=sym)
