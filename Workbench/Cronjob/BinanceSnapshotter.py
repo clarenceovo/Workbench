@@ -53,7 +53,7 @@ def get_open_interest(client: BinanceDataCollector, db_client: QuestDBClient):
             oi_batch = open_interest.to_batch()
             if oi_batch:
                 db_client.batch_write(oi_batch)
-        time.sleep(3)
+        time.sleep(1)
 
 
 if __name__ == "__main__":
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     data_client = BinanceDataCollector()
     # Register the collector
 
-    schedule.every(30).minutes.at(":00").do(lambda: get_open_interest(data_client, db_client))
+    schedule.every(5).minutes.at(":00").do(lambda: get_open_interest(data_client, db_client))
     #schedule.every().hour.at(":00").do(lambda: get_funding(data_client, db_client))
     schedule.run_all()
     while True:
