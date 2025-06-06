@@ -13,9 +13,9 @@ class Order:
     order_type: OrderType
     direction: OrderDirection
     deal_ts : int = field(default_factory= get_utc_now_ms, init=True)  # Default to 0 for market orders
-    price: float = field(default=0.0, init=False)  # Default to 0.0 for market orders
+    price: float = field(default=0.0)  # Default to 0.0 for market orders
     is_completed: bool = field(default=False, init=False)
-    is_market_order: bool = field(default=False, init=False)
+    is_market_order: bool = field(default=False)
     client_order_id: str = get_uuid()
     order_ref_id: Optional[str] = None
 
@@ -45,6 +45,21 @@ class Order:
                 "lever_rate": "10",
                 "order_price_type" : "limit" if self.order_type == OrderType.LIMIT else "market",
             }
+        }
+
+    def to_binance_order(self):
+        """
+        Convert the order to a format suitable for Binance.
+        """
+        return {
+            "apiKey": self.exchange,
+            "quantity": self.quantity,
+            "side": "BUY" if self.direction == OrderDirection.BUY else "SELL",
+            "symbol": self.symbol,
+            "timestamp": int(get_utc_now_ms()),
+            "type": "MARKET" if self.is_market_order else "LIMIT",
+            "price": self.price if not self.is_market_order else None,
+            "signature": None  # Signature will be added later
         }
 
     def finish(self,order_ref_id: Optional[str] = None):

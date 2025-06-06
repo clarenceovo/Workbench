@@ -1,6 +1,6 @@
 import json
 import time
-import websocket
+from collections import defaultdict, OrderedDict
 from Workbench.CryptoWebsocketDataCollector import BaseWSCollector
 from Workbench.CryptoDataConnector.HyperliquidDataCollector import HyperliquidDataCollector
 from Workbench.transport.QuestClient import QuestDBClient
@@ -28,32 +28,26 @@ class HyperliquidWSCollector(BaseWSCollector):
     def subscribe(self, topic_list: list = None):
         setattr(self, "orderbook", OrderbookCollection("Hyperliquid"))
         if topic_list is None:
-            topic_list = ["BTC", "ETH"]  # default symbols
+            topic_list = ["BTC","ETH","SOPH",'SOL']  # default symbols
         for inst in topic_list:
             self.logger.info(f"Subscribing to l2Book for {inst}")
-            self.orderbook.add_orderbook(inst)
+            self.orderbook.add_orderbook(inst,True)
             topic = ["subscribe", {"type": "l2Book", "coin": inst}]
             self.client.send(topic)
 
     def _handler_l2book(self, msg):
         symbol = msg["coin"]
-        bbo = TopOfBook(
-            timestamp=int(msg["time"]),
-            exchange="Hyperliquid",
-            symbol=symbol,
-            bid_price=float(msg["levels"][0][0]['px']),
-            bid_qty=float(msg["levels"][0][0]['sz']),
-            ask_price=float(msg["levels"][1][0]['px']),
-            ask_qty=float(msg["levels"][1][0]['sz']),
-        )
-        bbo = bbo.to_batch()
-        self.last_publish[symbol] = bbo
-        if get_utc_now_ms() - self.last_publish.get(symbol, 0) > 10:
-            self.last_publish[symbol] = get_utc_now_ms()
-            #self.db_client.batch_write(bbo)
+        book = self.orderbook.get_orderbook(symbol)
+        level = msg["levels"]
+        bids , asks = level[0] , level[1]
+        bids = OrderedDict((float(bid['px']), float(bid['sz'])) for bid in bids)
+        asks = OrderedDict((float(ask['px']), float(ask['sz'])) for ask in asks)
+        book.update_orderbook(bids, asks)
+
 
     def _message_handler(self, msg):
         msg = json.loads(msg)
+
         if msg.get("channel") == "l2Book":
             self._handler_l2book(msg["data"])
         elif msg.get("channel") == "subscriptionResponse":

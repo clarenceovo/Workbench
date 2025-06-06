@@ -1,3 +1,4 @@
+import json
 import time
 import hmac
 import hashlib
@@ -7,8 +8,14 @@ from Workbench.CryptoTrader.CryptoTraderBase import CryptoTraderBase
 from Workbench.config.ConnectionConstant import (BINANCE_FUTURES_API_URL ,
                                                  BINANCE_FUTURE_TRADE_WS_URL)
 from Workbench.config.CredentialConstant import BINANCE_API_KEY, BINANCE_API_SECRET
+from Workbench.model.OrderEnum import OrderSide, OrderDirection, OrderType
+from Workbench.model.order.Order import Order
 from Workbench.transport.websocket_client import WebsocketClient
 from threading import Thread
+
+from Workbench.util.OrderUtil import get_uuid
+
+
 class BinanceCryptoTrader(CryptoTraderBase):
     """
     Binance Futures Crypto Trader implementation.
@@ -20,6 +27,8 @@ class BinanceCryptoTrader(CryptoTraderBase):
                  start_ws = True):
         super().__init__(name, api_key, api_secret)
         self.base_url = BINANCE_FUTURES_API_URL
+        self.order_book = {}
+        self.event_id = {}
         if start_ws:
             self.ws_trade_client = WebsocketClient(
                 url=BINANCE_FUTURE_TRADE_WS_URL,
@@ -28,43 +37,78 @@ class BinanceCryptoTrader(CryptoTraderBase):
             self.ws_thread = Thread(target=self.ws_trade_client.start, daemon=True).start()
             self.logger.info("Binance Futures WebSocket client started.")
             time.sleep(1)
-            self._trade_ws_subscribe()
+
+
 
     @staticmethod
     def generate_signature(secret, params):
         query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
         return hmac.new(secret.encode(), query_string.encode(), hashlib.sha256).hexdigest()
 
-
-
-    def _trade_ws_subscribe(self):
-        """
-        Subscribe to the Binance Futures trade WebSocket.
-        1. logon
-        """
-        timestamp = int(time.time() * 1000)
-        params = {
-            "apiKey": BINANCE_API_KEY,
-            "timestamp": timestamp
+    def ws_place_order(self,order:Order):
+        order_param = {
+            "apiKey": self.api_key,
+            "quantity": order.quantity,  # Example quantity, adjust as needed
+            "side": "BUY" if order.direction == OrderDirection.BUY else "SELL",
+            "symbol": order.symbol,
+            "timestamp": int(time.time() * 1000),
+            "type": "MARKET" if order.is_market_order else "LIMIT",
         }
-        signature = BinanceCryptoTrader.generate_signature(BINANCE_API_SECRET, params)
-        auth_msg = {
-            "id": "auth-1",
-            "method": "session.logon",
-            "params": {
-                "apiKey": BINANCE_API_KEY,
-                "timestamp": timestamp,
-                "signature": signature
-            }
+        if order.is_market_order is False:
+            order_param["price"] = order.price
+
+        order_param["signature"] = self._sign(order_param)
+        order_payload = {
+            "id" : get_uuid(),
+            "method": "order.place",
+            "params": order_param
         }
-        self.ws_trade_client.send(auth_msg)
+        self.order_book[order_payload['id']] = order_payload
+        self.event_id[order_payload['id']] = "order.place"
+        self.logger.info(f"Sending order:{order_payload}")
+        self.ws_trade_client.send(order_payload)
 
     def _trade_ws_handler(self, msg):
         """
         Handle messages from the Binance Futures trade WebSocket.
         """
         # Implement the logic to handle trade messages
-        self.logger.info(f"Trade message received: {msg}")
+        #self.logger.info(f"Trade message received: {msg}")
+        msg = json.loads(msg)
+        action = self.event_id.get(msg['id'],None)
+        match action:
+            case "order.place":
+                if msg.get('status') == 200:
+                    self.logger.info(f"Order placed successfully: {msg['result']}")
+                else:
+                    self.logger.error(f"Failed to place order: {msg['result']}")
+            case "account.position":
+                if msg.get('status') == 200:
+                    self.logger.info(f"Position data received: {msg['result']}")
+                else:
+                    self.logger.error(f"Failed to get position data: {msg['result']}")
+            case None:
+                self.logger.error(f"Received message with unknown id: {msg['id']}, message: {msg}")
+            case _:
+                self.logger.info(f"Unhandled action: {action}, message: {msg}")
+
+
+    def _ws_get_position(self):
+        id = get_uuid()
+        params = {
+            "apiKey": self.api_key,
+            "symbol": "BTCUSDT",
+            "timestamp": int(time.time() * 1000)
+        }
+        params["signature"] = self._sign(params)
+        payload = {
+            "id": id,
+            "method": "account.position",
+            "params": params
+        }
+        self.event_id[id] = "account.position"
+        self.ws_trade_client.send(payload)
+
 
     def _sign(self, params: dict) -> str:
         query_string = urlencode(params)
@@ -132,7 +176,21 @@ class BinanceCryptoTrader(CryptoTraderBase):
 
 if __name__ == "__main__":
     trader = BinanceCryptoTrader()
+    time.sleep(5)
+    order = Order(
+        exchange="BINANCE",
+        symbol="BTCUSDT",
+        direction=OrderDirection.SELL,
+        quantity=0.001,
+        price=100000,  # Example price, adjust as needed
+        order_type=OrderType.MARKET,
+        is_market_order=True
+    )
+    #trader.ws_place_order(order)
+    while True:
+        trader._ws_get_position()
+        time.sleep(5)
     # Example usage
-    print(trader.get_account_balance())
-    print(trader.get_account_status())
+    ##print(trader.get_account_status())
+    #print(trader.get_account_balance())
     # Place a sample order (make sure to adjust the parameters)

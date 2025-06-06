@@ -56,5 +56,4 @@ class TelegramPostman(BaseHandler):
 if __name__ == "__main__":
     POSTMAN = TelegramPostman()
 
-    ret= POSTMAN.get_update()
-    print(ret)
+    ret= POSTMAN.send_message(text="hi")

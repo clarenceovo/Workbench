@@ -18,8 +18,10 @@ class Order:
 
 
 class BTreeOrderbook:
-    def __init__(self, instrument: str):
+    def __init__(self, instrument: str,
+                 compare_and_swap: bool = False):
         self.instrument = instrument
+        self.compare_and_swap = compare_and_swap
         self.bids = OrderedDict()  # descending prices
         self.asks = OrderedDict()  # ascending prices
 
@@ -84,6 +86,17 @@ class BTreeOrderbook:
     def clear_asks(self):
         self.asks.clear()
 
+    def update_orderbook(self, new_bids: OrderedDict, new_asks: OrderedDict):
+        if self.compare_and_swap:
+            # Compare and update bids
+            if self.bids != new_bids:
+                self.bids.clear()
+                self.bids.update(new_bids)
+
+            # Compare and update asks
+            if self.asks != new_asks:
+                self.asks.clear()
+                self.asks.update(new_asks)
 
 class OrderbookCollection:
     orderbooks: dict[str, BTreeOrderbook]
@@ -92,9 +105,9 @@ class OrderbookCollection:
         self.exchange = exchange
         self.orderbooks = {}
 
-    def add_orderbook(self, instrument: str):
+    def add_orderbook(self, instrument: str,cas=False):
         if instrument not in self.orderbooks:
-            self.orderbooks[instrument] = BTreeOrderbook(instrument)
+            self.orderbooks[instrument] = BTreeOrderbook(instrument,cas)
 
     def get_orderbook(self, instrument: str):
         return self.orderbooks.get(instrument)

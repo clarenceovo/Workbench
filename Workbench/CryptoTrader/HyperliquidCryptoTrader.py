@@ -19,8 +19,6 @@ class HyperliquidCryptoTrader(CryptoTraderBase):
     Hyperliquid Crypto Trader class for trading on Hyperliquid exchange.
     """
 
-
-
     def __init__(self, name="HyperliquidCryptoTrader",
                  api_key=HYPERLIQUID_API_WALLET,
                  api_secret=HYPERLIQUID_API_PRIVATE_KEY,
@@ -55,7 +53,9 @@ class HyperliquidCryptoTrader(CryptoTraderBase):
         # Subscribe to user-specific updates
         user_subscriptions = [
             {"type": "orderUpdates", "user": self.public_address},
+            {"type": "notification", "user": self.public_address},
             {"type": "userFills", "user": self.public_address},
+            {"type": "userEvents", "user": self.public_address},
             {"type": "userFundings", "user": self.public_address},
             {"type": "userNonFundingLedgerUpdates", "user": self.public_address}
         ]
@@ -102,6 +102,14 @@ class HyperliquidCryptoTrader(CryptoTraderBase):
                 for fill in fills:
                     self.logger.info(f"Fill received: {fill}")
                     # Process fill data here
+            case "webData2":
+                self.logger.info(f"Received webData2 update.{data}")
+                # Process webData2 updates here
+            case "notification":
+                self.logger.info(f"Notification received: {data}")
+            case "userEvents":
+                self.logger.info(f"User event received: {data}")
+                # Process user events here
             case "orderUpdates":
                 orders = data.get("data", [])
                 for order_update in orders:
@@ -186,4 +194,3 @@ class HyperliquidCryptoTrader(CryptoTraderBase):
 if __name__ == "__main__":
     client = HyperliquidCryptoTrader(start_ws=True)
     account = client.get_account_balance()
-    print(account)
