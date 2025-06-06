@@ -2,6 +2,7 @@ from Workbench.CryptoTrader.CryptoTraderBase import CryptoTraderBase
 from Workbench.CryptoDataConnector.HTXDataCollector import HTXDataCollector
 from Workbench.config.ConnectionConstant import HTX_SPOT_API_URL, HTX_FUTURES_API_URL , HTX_TRADE_WS_URL, HTX_SWAP_WS_NOTIFICATION_URL
 from Workbench.config.CredentialConstant import HTX_API_KEY , HTX_API_SECRET
+from Workbench.model.position.positions import Position
 from Workbench.util.OrderUtil import get_htx_signature
 from Workbench.transport.websocket_client import WebsocketClient
 from Workbench.model.order.Order import Order
@@ -28,7 +29,6 @@ class HTXCryptoTrader(CryptoTraderBase):
         self.account_url = f"{self.futures_base_url}/v1/account/accounts"
         self.swap_info = HTXDataCollector().get_contract_details()
 
-
         if start_ws:
             self.ws_trade_client = WebsocketClient(
                 url=HTX_TRADE_WS_URL,
@@ -43,17 +43,7 @@ class HTXCryptoTrader(CryptoTraderBase):
             self._trade_ws_subscribe()
             self._noti_ws_subscribe()
 
-            #todo : remove this after testing
-            """
-            order = Order(
-                exchange="HTX",
-                symbol="BTC-USDT",
-                direction=OrderDirection.BUY,
-                order_type=OrderType.MARKET,
-                quantity=1
-            )
-            self.ws_place_order(order)
-            """
+
     def _noti_ws_subscribe(self):
         """
         Subscribe to HTX WebSocket notification channels.
@@ -125,8 +115,15 @@ class HTXCryptoTrader(CryptoTraderBase):
                 pong = {"op":"pong", "ts": msg["ts"]}
                 self.ws_noti_client.send(pong)
             elif msg.get("op") == "notify":
-                data = msg.get("data", {})
-                self.logger.info(f"Received position: {data}")
+                self._position_handler(msg.get("data", []))
+
+    def _position_handler(self, msg: list):
+        if len(msg) == 0:
+            return
+        for item in msg:
+            if item.get('volume') >0:
+                self.position_book.add_position(Position.from_htx_position(item))
+
 
     def ws_place_order(self, order: Order):
         """
@@ -136,9 +133,10 @@ class HTXCryptoTrader(CryptoTraderBase):
         :param mode: Order type, either 'limit' or 'market'.
         :return: Response from the WebSocket server.
         """
+
         payload = order.to_htx_order()
         self.logger.info(f"Placing order {order.client_order_id} via WebSocket: {payload}")
-        self.ws_client.send(payload)
+        self.ws_trade_client.send(payload)
 
 
     def place_order(self, order: Order, is_market_order: bool = False,mode: str = 'limit'):
@@ -261,6 +259,17 @@ class HTXCryptoTrader(CryptoTraderBase):
             raise Exception(f"Failed to get account balance: {response.text}")
 if __name__ == '__main__':
     # Example usage
+    # todo : remove this after testing
+    """
+    order = Order(
+        exchange="HTX",
+        symbol="BTC-USDT",
+        direction=OrderDirection.BUY,
+        order_type=OrderType.MARKET,
+        quantity=1
+    )
+    self.ws_place_order(order)
+    """
     trader = HTXCryptoTrader()
     try:
         account_info = trader.get_account_balance()

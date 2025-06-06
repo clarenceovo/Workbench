@@ -6,6 +6,8 @@ from Workbench.transport.redis_client import RedisClient
 from Workbench.config.ConnectionConstant import REDIS_HOST , REDIS_PORT, REDIS_DB , REDIS_PASSWORD , QUEST_HOST , QUEST_PORT
 from Workbench.StrategyBot.BaseBot import BaseBot
 from Workbench.util.TimeUtil import get_timestamp
+from Workbench.CryptoTrader.BinanceCryptoTrader import BinanceCryptoTrader
+from Workbench.CryptoTrader.HTXCryptoTrader import HTXCryptoTrader
 
 
 class SwapArbStrategyBot(BaseBot):
@@ -19,6 +21,8 @@ class SwapArbStrategyBot(BaseBot):
         #self.logger.info(f'SwapArbStrategyBot initialized with bot_id: {bot_id}.Config: {self.bot_config}')
         self.init_market_collector(self.bot_config.exchange_a)
         self.init_market_collector(self.bot_config.exchange_b)
+        self.trader_client_a = BinanceCryptoTrader(name=self.bot_config.exchange_a)
+        self.trader_client_b = HTXCryptoTrader(name=self.bot_config.exchange_b)
         self.spread_book = {}
         self.init_bot()
 

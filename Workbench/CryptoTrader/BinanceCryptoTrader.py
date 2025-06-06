@@ -2,7 +2,6 @@ import json
 import time
 import hmac
 import hashlib
-import requests
 from urllib.parse import urlencode
 from Workbench.CryptoTrader.CryptoTraderBase import CryptoTraderBase
 from Workbench.config.ConnectionConstant import (BINANCE_FUTURES_API_URL ,
@@ -10,11 +9,11 @@ from Workbench.config.ConnectionConstant import (BINANCE_FUTURES_API_URL ,
 from Workbench.config.CredentialConstant import BINANCE_API_KEY, BINANCE_API_SECRET
 from Workbench.model.OrderEnum import OrderSide, OrderDirection, OrderType
 from Workbench.model.order.Order import Order
+from Workbench.model.position.positions import Position , PositionBooks
 from Workbench.transport.websocket_client import WebsocketClient
 from threading import Thread
 
 from Workbench.util.OrderUtil import get_uuid
-
 
 class BinanceCryptoTrader(CryptoTraderBase):
     """
@@ -29,12 +28,15 @@ class BinanceCryptoTrader(CryptoTraderBase):
         self.base_url = BINANCE_FUTURES_API_URL
         self.order_book = {}
         self.event_id = {}
+
         if start_ws:
             self.ws_trade_client = WebsocketClient(
                 url=BINANCE_FUTURE_TRADE_WS_URL,
                 callback=self._trade_ws_handler,
             )
             self.ws_thread = Thread(target=self.ws_trade_client.start, daemon=True).start()
+            time.sleep(1)
+            self.position_thread = Thread(target=self.get_position, daemon=True).start()
             self.logger.info("Binance Futures WebSocket client started.")
             time.sleep(1)
 
@@ -84,7 +86,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
                     self.logger.error(f"Failed to place order: {msg['result']}")
             case "account.position":
                 if msg.get('status') == 200:
-                    self.logger.info(f"Position data received: {msg['result']}")
+                    self._position_handler(msg['result'])
                 else:
                     self.logger.error(f"Failed to get position data: {msg['result']}")
             case None:
@@ -92,12 +94,20 @@ class BinanceCryptoTrader(CryptoTraderBase):
             case _:
                 self.logger.info(f"Unhandled action: {action}, message: {msg}")
 
+    def get_position(self):
+        while True:
+            self._ws_get_position()
+            time.sleep(1)
+
+    def _position_handler(self, msg:list):
+        for item in msg:
+            if item['updateTime'] > 0:
+                self.position_book.add_position(Position.from_binance_position(item))
 
     def _ws_get_position(self):
         id = get_uuid()
         params = {
             "apiKey": self.api_key,
-            "symbol": "BTCUSDT",
             "timestamp": int(time.time() * 1000)
         }
         params["signature"] = self._sign(params)
@@ -165,6 +175,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
         self.logger.info(f"Account status: {result}")
         return result
 
+
     def get_account_balance(self):
         """
         Get USDT balance of the futures account.
@@ -187,9 +198,7 @@ if __name__ == "__main__":
         is_market_order=True
     )
     #trader.ws_place_order(order)
-    while True:
-        trader._ws_get_position()
-        time.sleep(5)
+
     # Example usage
     ##print(trader.get_account_status())
     #print(trader.get_account_balance())

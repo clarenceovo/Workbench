@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import logging
 from requests import Session
+from Workbench.model.position.positions import Position , PositionBooks
 class CryptoTraderBase(ABC):
     """
     Base class for CryptoTrader, providing common functionality.
@@ -13,6 +14,7 @@ class CryptoTraderBase(ABC):
         self.api_secret = api_secret
         self.session = Session()
         self.logger = logging.getLogger(name)
+        self.position_book = PositionBooks(name)
 
     @abstractmethod
     def place_order(self, order):
