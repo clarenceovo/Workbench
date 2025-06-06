@@ -25,6 +25,7 @@ class SwapArbStrategyBot(BaseBot):
         self.trader_client_b = HTXCryptoTrader(name=self.bot_config.exchange_b)
         self.spread_book = {}
         self.init_bot()
+        self.position_count = 0 #TODO : implement position count logic
 
     def init_bot(self):
         #start WS
@@ -103,6 +104,20 @@ class SwapArbStrategyBot(BaseBot):
                 5. Update BBO and cal the SwapPosition frequently
                 
                 """
+                if self.position_count > self.bot_config.max_position:
+                    self.logger.warning(f"Max position count reached for {symbol}. Skipping trade.")
+                    continue
+
+                if spread_bp > 0:
+                    # Buy on exchange A and sell on exchange B
+                    self.trader_client_a.place_order(symbol=symbol, side="BUY", price=bid_a, is_market_order=self.bot_config.is_market_order)
+                    self.trader_client_b.place_order(symbol=symbol, side="SELL", price=ask_b, is_market_order=self.bot_config.is_market_order)
+                    self.position_count += 1
+                else:
+                    # Buy on exchange B and sell on exchange A
+                    self.trader_client_b.place_order(symbol=symbol, side="BUY", price=bid_b, is_market_order=self.bot_config.is_market_order)
+                    self.trader_client_a.place_order(symbol=symbol, side="SELL", price=ask_a, is_market_order=self.bot_config.is_market_order)
+                    self.position_count += 1
             else:
                 pass
 
