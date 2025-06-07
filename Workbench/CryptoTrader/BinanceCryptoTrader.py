@@ -11,6 +11,7 @@ from Workbench.model.OrderEnum import OrderSide, OrderDirection, OrderType
 from Workbench.model.order.Order import Order
 from Workbench.model.position.positions import Position , PositionBooks
 from Workbench.transport.websocket_client import WebsocketClient
+from Workbench.CryptoDataConnector.BinanceDataCollector import BinanceDataCollector
 from threading import Thread
 
 from Workbench.util.OrderUtil import get_uuid
@@ -28,7 +29,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
         self.base_url = BINANCE_FUTURES_API_URL
         self.order_book = {}
         self.event_id = {}
-
+        self.contract_info = BinanceDataCollector().get_contract_details()
         if start_ws:
             self.ws_trade_client = WebsocketClient(
                 url=BINANCE_FUTURE_TRADE_WS_URL,
@@ -54,7 +55,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
             "side": "BUY" if order.direction == OrderDirection.BUY else "SELL",
             "symbol": order.symbol,
             "timestamp": int(time.time() * 1000),
-            "type": "MARKET" if order.is_market_order else "LIMIT",
+            "type": "MARKET" if order.order_type == OrderType.MARKET else "LIMIT",
         }
         if order.is_market_order is False:
             order_param["price"] = order.price
@@ -69,6 +70,23 @@ class BinanceCryptoTrader(CryptoTraderBase):
         self.event_id[order_payload['id']] = "order.place"
         self.logger.info(f"Sending order:{order_payload}")
         self.ws_trade_client.send(order_payload)
+
+    def get_order_size(self, symbol: str , quantity:float) -> float:
+        """
+        Get the contract size for a given symbol.
+        :param symbol: The trading pair symbol.
+        :return: The contract size.
+        """
+        contract_info = self.contract_info[self.contract_info['symbol'] == symbol]
+        if not contract_info.empty:
+            filters = contract_info['filters'].values[0]
+            lot_size_filter = next(f for f in filters if f['filterType'] == 'LOT_SIZE')
+            step_size = float(lot_size_filter['stepSize'])
+            # Round to the nearest step size
+            adjusted_quantity = round(quantity / step_size) * step_size
+            return adjusted_quantity
+        return 0
+
 
     def _trade_ws_handler(self, msg):
         """
@@ -189,15 +207,15 @@ if __name__ == "__main__":
     trader = BinanceCryptoTrader()
     time.sleep(5)
     order = Order(
-        exchange="BINANCE",
-        symbol="BTCUSDT",
-        direction=OrderDirection.SELL,
-        quantity=0.001,
-        price=100000,  # Example price, adjust as needed
-        order_type=OrderType.MARKET,
-        is_market_order=True
-    )
-    #trader.ws_place_order(order)
+            exchange="BINANCE",
+            symbol="IOUSDT",
+            direction=OrderDirection.SELL,
+            quantity=273.6,
+            price=0.8,  # Example price, adjust as needed
+            order_type=OrderType.MARKET,
+            is_market_order=True
+        )
+    trader.ws_place_order(order)
 
     # Example usage
     ##print(trader.get_account_status())

@@ -60,6 +60,14 @@ def get_spread_bp(bp: float, sp: float) -> float:
     """
     return bp * sp if bp > 0 else 0.0
 
+def trim_trailing_zeros(value: float) -> str:
+    """
+    Trim unnecessary trailing zeros from a float.
+    :param value: The float value to process.
+    :return: The trimmed string representation of the float.
+    """
+    return str(value).rstrip('0').rstrip('.') if '.' in str(value) else str(value)
+
 if __name__ == "__main__":
     # Example usage
 

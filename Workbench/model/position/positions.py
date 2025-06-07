@@ -31,6 +31,8 @@ class Position:
             order_type= data["marginType"],
             direction=OrderDirection.BUY if float(data["positionAmt"]) > 0 else OrderDirection.SELL
         )
+
+    @staticmethod
     def from_htx_position(data: dict):
         """
         Converts HTX position data into a Position object.
@@ -44,10 +46,42 @@ class Position:
             notional=float(data["cost_hold"]),
             entryPrice=float(data["cost_open"]),
             markPrice=float(data["last_price"]),
-            lastUpdate_ts=0,  # HTX data does not provide a timestamp for updates
+            lastUpdate_ts=get_utc_now_ms(),  # HTX data does not provide a timestamp for updates
             order_type="cross",
             direction=OrderDirection.BUY if data["direction"] == "buy" else OrderDirection.SELL
         )
+
+    def to_dict(self):
+        return {
+            "exchange": self.exchange,
+            "symbol": self.symbol,
+            "quantity": self.quantity,
+            "notional": self.notional,
+            "entryPrice": self.entryPrice,
+            "markPrice": self.markPrice,
+            "lastUpdate_ts": self.lastUpdate_ts,
+            "order_type": self.order_type,
+            "direction": self.direction.value
+        }
+
+    def __str__(self):
+        return (f"Position(exchange={self.exchange}, symbol={self.symbol}, quantity={self.quantity}, "
+                f"notional={self.notional}, entryPrice={self.entryPrice}, markPrice={self.markPrice}, "
+                f"lastUpdate_ts={self.lastUpdate_ts}, order_type={self.order_type}, direction={self.direction})")
+
+    def __dict__(self):
+        return {
+            "exchange": self.exchange,
+            "symbol": self.symbol,
+            "quantity": self.quantity,
+            "notional": self.notional,
+            "entryPrice": self.entryPrice,
+            "markPrice": self.markPrice,
+            "lastUpdate_ts": self.lastUpdate_ts,
+            "order_type": self.order_type,
+            "direction": self.direction.value
+        }
+
 class PositionBooks:
     def __init__(self,exchange: str):
         self.exchange = exchange
@@ -74,3 +108,9 @@ class PositionBooks:
     def get_position(self, symbol: str) -> Optional[Position]:
         return self.positions.get(symbol, None)
 
+    def to_dict(self):
+        return {
+            "exchange": self.exchange,
+            "last_update": self.last_update,
+            "positions": {k: v.to_dict() for k, v in self.positions.items()}
+        }

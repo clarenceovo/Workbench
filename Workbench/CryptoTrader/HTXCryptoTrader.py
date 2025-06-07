@@ -1,3 +1,5 @@
+import math
+
 from Workbench.CryptoTrader.CryptoTraderBase import CryptoTraderBase
 from Workbench.CryptoDataConnector.HTXDataCollector import HTXDataCollector
 from Workbench.config.ConnectionConstant import HTX_SPOT_API_URL, HTX_FUTURES_API_URL , HTX_TRADE_WS_URL, HTX_SWAP_WS_NOTIFICATION_URL
@@ -27,7 +29,7 @@ class HTXCryptoTrader(CryptoTraderBase):
         self.spot_base_url = HTX_SPOT_API_URL
         self.futures_base_url = HTX_FUTURES_API_URL
         self.account_url = f"{self.futures_base_url}/v1/account/accounts"
-        self.swap_info = HTXDataCollector().get_contract_details()
+        self.contract_info = HTXDataCollector().get_contract_details()
 
         if start_ws:
             self.ws_trade_client = WebsocketClient(
@@ -43,6 +45,22 @@ class HTXCryptoTrader(CryptoTraderBase):
             self._trade_ws_subscribe()
             self._noti_ws_subscribe()
 
+    def get_order_size(self, symbol: str,quantity :float) -> float:
+        symbol = symbol.replace('USDT','')
+        detail = self.contract_info.query(f'symbol == "{symbol}"')
+        if detail.empty:
+            self.logger.error(f"Symbol {symbol} not found in contract details.")
+            return 0
+        contract_size = float(detail['contract_size'].values[0])
+        step_size = float(detail['price_tick'].values[0])  # You must include this column in your contract_info
+
+        raw_size = quantity / contract_size
+
+        # Round to nearest step_size
+        precision = int(round(-math.log10(step_size)))
+        order_size = round(raw_size, precision)
+
+        return int(order_size)
 
     def _noti_ws_subscribe(self):
         """
@@ -198,21 +216,37 @@ class HTXCryptoTrader(CryptoTraderBase):
         else:
             raise Exception(f"Failed to get asset valuation: {response.text}")
 
-    def _load_futures_position(self, symbol: str):
+    def _load_futures_position(self, symbol: str=None):
         method = 'POST'
         host = 'api.hbdm.com'
         path = '/linear-swap-api/v1/swap_position_info'
         url = f'https://{host}{path}'
-        params = {}
+        params = {"contract":"BTC-USDT"} if symbol is None else {"contract": symbol}
         signed_params = get_htx_signature(self.api_key, self.api_secret, method, host, path, params)
         data = {
-            'contract_code': symbol
+            'contract': "BTC-USDT" if symbol is None else symbol,
         }
         response = requests.post(url, params=signed_params, json=data)
         if response.status_code == 200:
             return response.json()
         else:
             raise Exception(f"Failed to load position: {response.text}")
+
+    def get_swap_position_info(self):
+        method = 'POST'
+        base_url = 'api.hbdm.com'
+        request_path = '/linear-swap-api/v1/swap_position_info'
+        url = f'https://{base_url}{request_path}'
+        # Leave params empty to query all positions
+        params = {}
+
+        signed_params = get_htx_signature(self.api_key, self.api_secret, method, base_url, request_path, params)
+        response = requests.post(url, params=signed_params)
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise Exception(f"Failed to get all positions: {response.text}")
 
     def get_account_status(self, model: str = 'futures'):
         if model == 'futures':
@@ -260,19 +294,27 @@ class HTXCryptoTrader(CryptoTraderBase):
 if __name__ == '__main__':
     # Example usage
     # todo : remove this after testing
-    """
+
+
+    trader = HTXCryptoTrader()
+    time.sleep(2)
+
     order = Order(
         exchange="HTX",
-        symbol="BTC-USDT",
-        direction=OrderDirection.BUY,
+        symbol="IO-USDT",
+        direction=OrderDirection.SELL,
         order_type=OrderType.MARKET,
-        quantity=1
+        quantity=134,
+        reduce_only=True,
+        is_close_order=True
+
     )
-    self.ws_place_order(order)
-    """
-    trader = HTXCryptoTrader()
+    #trader.ws_place_order(order)
+
+
+
     try:
-        account_info = trader.get_account_balance()
+        account_info = trader.get_future_account_info()
         print("Account Info:", account_info)
     except Exception as e:
         print(f"Error fetching account info: {e}")

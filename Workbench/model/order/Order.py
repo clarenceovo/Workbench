@@ -18,8 +18,8 @@ class Order:
     is_market_order: bool = field(default=False)
     client_order_id: str = get_uuid()
     order_ref_id: Optional[str] = None
-
-
+    reduce_only: bool = False  # Default to False, can be set to True for reduce-only orders
+    is_close_order: bool = False  # Default to False, can be set to True for close orders
     def to_json(self):
         return {
             "exchange": self.exchange,
@@ -41,9 +41,10 @@ class Order:
                 'direction': self.direction.name.lower(),
                 "price": self.price if self.order_type == OrderType.LIMIT else 0.0,
                 "volume": self.quantity,
-                "offset": "open",
+                "offset": "close" if self.is_close_order else "open" ,
                 "lever_rate": "10",
                 "order_price_type" : "limit" if self.order_type == OrderType.LIMIT else "market",
+                #"reduce_only": self.reduce_only,
             }
         }
 
