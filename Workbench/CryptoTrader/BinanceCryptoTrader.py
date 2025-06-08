@@ -2,6 +2,7 @@ import json
 import time
 import hmac
 import hashlib
+import math
 from urllib.parse import urlencode
 
 from overrides import overrides
@@ -85,7 +86,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
         self.logger.info(f"Sending order:{order_payload}")
         self.ws_trade_client.send(order_payload)
 
-    def get_order_size(self, symbol: str , quantity:float) -> float:
+    def get_order_size(self, symbol: str , quantity:float,price:float) -> float:
         """
         Get the contract size for a given symbol.
         :param symbol: The trading pair symbol.
@@ -96,9 +97,12 @@ class BinanceCryptoTrader(CryptoTraderBase):
             for f in filters:
                 if f['filterType'] == 'LOT_SIZE':
                     step_size = float(f['stepSize'])
+                    min_qty = float(f['minQty'])
                     # Round to the nearest step size
-                    adjusted_quantity = round(quantity / step_size) * step_size
-                    return adjusted_quantity
+                    raw_contracts = quantity / price
+                    adjusted_quantity = round(raw_contracts / step_size) * step_size
+                    precision = int(round(-math.log10(step_size)))
+                    return max(round(adjusted_quantity, precision), min_qty)
         return 0
 
 
@@ -233,18 +237,19 @@ class BinanceCryptoTrader(CryptoTraderBase):
 
 if __name__ == "__main__":
     trader = BinanceCryptoTrader(start_ws=True)
-    time.sleep(5)
+    time.sleep(1)
     order = Order(
             exchange="BINANCE",
             symbol="IOUSDT",
-            direction=OrderDirection.BUY,
-            quantity=131.20000005,
+            direction=OrderDirection.SELL,
+            quantity=131.2,
             price=0.8,  # Example price, adjust as needed
             order_type=OrderType.MARKET,
             is_market_order=True
         )
-    sz =trader.get_order_size("BTCUSDT",100)
-    trader.ws_place_order(order)
+    sz =trader.get_order_size("BTCUSDT",1500,10500.0)
+    print(f"Adjusted order size: {sz}")
+    #trader.ws_place_order(order)
 
     # Example usage
     ##print(trader.get_account_status())

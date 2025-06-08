@@ -56,16 +56,16 @@ class HTXCryptoTrader(CryptoTraderBase):
 
         setattr(self,"contract_reference",tmp)
 
-    def get_order_size(self, symbol: str,quantity :float) -> float:
+    def get_order_size(self, symbol: str,quantity :float,price:float) -> float:
 
         detail = self.contract_reference.get(symbol,None)
-
+        raw_quantity = quantity / price
         if detail is None:
             self.logger.error(f"Symbol {symbol} not found in contract details.")
             return 0
         contract_size = float(detail[0])
         step_size = float(detail[1])
-        raw_size = quantity / contract_size
+        raw_size = raw_quantity / contract_size
         # Round to nearest step_size
         precision = int(round(-math.log10(step_size)))
         order_size = round(raw_size, precision)
@@ -129,7 +129,12 @@ class HTXCryptoTrader(CryptoTraderBase):
                 pong = {"op":"pong", "ts": msg["ts"]}
                 self.ws_trade_client.send(pong)
         else:
-            self.logger.info(f"Received message: {msg}")
+            #self.logger.info(f"Received message: {msg}")
+            if msg.get("status", None) == "ok":
+                data = msg.get("data", {})
+                if data.get("order_id"):
+                    self.logger.info(f"HTX Order {data.get("order_id")} processed successfully.")
+
 
     def _noti_ws_handler(self, msg):
         """
@@ -338,21 +343,21 @@ if __name__ == '__main__':
 
 
     trader = HTXCryptoTrader()
-    time.sleep(2)
+    time.sleep(1)
 
     order = Order(
         exchange="HTX",
-        symbol="SOLV-USDT",
-        direction=OrderDirection.BUY,
+        symbol="IO-USDT",
+        direction=OrderDirection.SELL,
         order_type=OrderType.MARKET,
-        quantity=953,
+        quantity=260,
         reduce_only=True,
         is_close_order=True
 
     )
-    sz = trader.get_order_size("SOLVUSDT",100)
-    print(sz)
-    #trader.ws_place_order(order)
+    #sz = trader.get_order_size("BTCUSDT",100,100500)
+    #print(sz)
+    trader.ws_place_order(order)
 
 
 

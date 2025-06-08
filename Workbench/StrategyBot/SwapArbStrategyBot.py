@@ -122,7 +122,12 @@ class SwapArbStrategyBot(BaseBot):
         else:
             self.logger.error("One of the exchanges is not active. killing the bot...")
             kill_process()
-
+        if (self.trader_client_a.ws_trade_client.is_running and self.trader_client_b.ws_trade_client.is_running):
+            pass
+        else:
+            self.logger.error("One of the traders is not active. killing the bot... and disable trading")
+            self.disable_trading()
+            kill_process()
     def _check_position_unwind(self):
         if self.bot_config.is_trading is False:
             #self.logger.info("Trading is disabled, skipping position unwind check.")
@@ -166,9 +171,8 @@ class SwapArbStrategyBot(BaseBot):
 
 
     def cal_quantity(self, symbol: str, price: float, notional: float) -> (float, float):
-        raw_qty = notional / price
-        a_qty = self.trader_client_a.get_order_size(symbol, raw_qty)
-        b_qty = self.trader_client_b.get_order_size(symbol, raw_qty)
+        a_qty = self.trader_client_a.get_order_size(symbol, notional,price)
+        b_qty = self.trader_client_b.get_order_size(symbol, notional,price)
         return (float(trim_trailing_zeros(a_qty)), float(trim_trailing_zeros(b_qty)))
 
     def cal(self):

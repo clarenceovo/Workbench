@@ -6,7 +6,7 @@ from Workbench.CryptoWebsocketDataCollector import *
 import json
 import logging
 class BaseBot(object):
-
+    KEY = "StrategyBot:SwapArb:{}"  # Placeholder for the Redis key format
     def __init__(self, redis_conn: RedisClient, bot_id: str):
         self.logger = logging.getLogger(type(self).__name__)
         self.redis_conn = redis_conn
@@ -35,8 +35,28 @@ class BaseBot(object):
 
         config = json.loads(t)
         config = SwapArbConfig(**config)
-        self.bot_config = config
+        #check if the config is same as the last one
+        if self.last_update_config is not None and config == self.bot_config:
+            #self.logger.info("Configuration has not changed, skipping reload.")
+            return
+        else:
+            #log the change
+            self.logger.info("Reloading configuration for bot_id: {}".format(self.bot_id))
+            self.bot_config = config
         #self.logger.info(f'Config:{self.bot_config}')
+
+    def save_config(self):
+        self.logger.info("Saving configuration for bot_id: {}".format(self.bot_id))
+        key = "StrategyBot:SwapArb:{}".format(self.bot_id)
+        self.redis_conn.client.set(key, json.dumps(self.bot_config))
+
+    def disable_trading(self):
+        if self.bot_config:
+            if getattr(self.bot_config, "is_trading", False):
+                self.bot_config.is_trading = False
+                self.save_config()
+                self.logger.info("Disabled trading and saved configuration for bot_id: {}".format(self.bot_id))
+
 
     def refresh_ts(self):
         """
