@@ -26,6 +26,7 @@ module.exports = {
             name: 'SwapArbStrategyBot_2',
             script: './Workbench/StrategyBot/SwapArbStrategyBot.py ALT2',
             cwd: code_path,
+            args: ['ALT2'], // Pass ALT2 as an argument
             env: {
                 PYTHONUNBUFFERED: "1",
                 PYTHONPATH: code_path,
