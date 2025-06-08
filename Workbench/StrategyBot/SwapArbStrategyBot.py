@@ -12,15 +12,16 @@ from Workbench.transport.redis_client import RedisClient
 from Workbench.model.position.SwapPosition import SwapPosition , SwapPositionBook
 from Workbench.config.ConnectionConstant import REDIS_HOST , REDIS_PORT, REDIS_DB , REDIS_PASSWORD , QUEST_HOST , QUEST_PORT
 from Workbench.StrategyBot.BaseBot import BaseBot
-from Workbench.util.TimeUtil import get_timestamp, get_utc_now_ms
+from Workbench.util.TimeUtil import get_timestamp, get_utc_now_ms, get_now_hkt_string
 from Workbench.util.OrderUtil import trim_trailing_zeros
 from Workbench.CryptoTrader.BinanceCryptoTrader import BinanceCryptoTrader
 from Workbench.CryptoTrader.HTXCryptoTrader import HTXCryptoTrader
+from Workbench.transport.telegram_postman import TelegramPostman
 
 
 class SwapArbStrategyBot(BaseBot):
     bot_config : SwapArbConfig
-    def __init__(self, redis_conn: RedisClient, bot_id:str):
+    def __init__(self, redis_conn: RedisClient,messenger, bot_id:str):
         self.publish_mode = False
         super().__init__(redis_conn, bot_id)
         self.logger.info("Initializing SwapArbStrategyBot...")
@@ -38,7 +39,13 @@ class SwapArbStrategyBot(BaseBot):
         self.working_pair = []
         self.unwinding_pair = []
         self.position_count = 0
+        self.messenger = messenger
+        self.send_message("Initialized SwapArbStrategyBot with ID: {} @ {}".format(self.bot_id, get_utc_now_ms()))
         self.init_bot()
+
+
+    def send_message(self, message: str):
+        self.messenger.send_message(text=message)
 
     def __publish_position(self):
         KEY = f'StrategyBot:SwapArb:Position:{self.bot_id}'
@@ -141,6 +148,7 @@ class SwapArbStrategyBot(BaseBot):
             spread = current_spread - position_spread
             if (abs(spread) > self.bot_config.exit_bp and abs(spread) <5000) and symbol not in self.unwinding_pair:
                 self.logger.info(f"Unwinding position for {symbol} due to low spread: {spread:.2f}")
+                self.send_message(f"Unwinding position for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
                 self.unwinding_pair.append(symbol)
                 with self.unwind_lock:
                     position_a = self.trader_client_a.position_book.get_position(symbol)
@@ -165,9 +173,10 @@ class SwapArbStrategyBot(BaseBot):
                             reduce_only=True,
                             is_close_order=True
                         )
-                        print(f'Unwinding orders:{symbol}')
+
                         self.trader_client_a.ws_place_order(order_a)
                         self.trader_client_b.ws_place_order(order_b)
+                        self.position_count -= 1
 
 
     def cal_quantity(self, symbol: str, price: float, notional: float) -> (float, float):
@@ -218,6 +227,7 @@ class SwapArbStrategyBot(BaseBot):
                     try:
                         order_qty = self.cal_quantity(symbol, bid_a, 100)
                         self.logger.info(f"Calculated order quantity for {symbol}: {order_qty}")
+                        self.send_message("Calculated order quantity for {}: {} @ {}".format(symbol, order_qty,get_now_hkt_string()))
                         if symbol in self.working_pair:
                             # self.logger.info(f"Already working on {symbol}, skipping...")
                             continue
@@ -268,6 +278,7 @@ class SwapArbStrategyBot(BaseBot):
 if __name__ == "__main__":
     import sys
     client = RedisClient(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, password=REDIS_PASSWORD)
+    tg = TelegramPostman()
     args = sys.argv[1:]
     bot_id = args[0] if len(args) > 0 else "ALT1"
-    bot = SwapArbStrategyBot(client, bot_id=bot_id)
+    bot = SwapArbStrategyBot(client,messenger=tg, bot_id=bot_id)
