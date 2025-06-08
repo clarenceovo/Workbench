@@ -231,6 +231,7 @@ class SwapArbStrategyBot(BaseBot):
                                 direction=OrderDirection.SELL,
                                 order_type=OrderType.MARKET,
                                 quantity=order_qty[0],
+                                is_market_order=True
                             )
                             order_b = Order(
                                 exchange=self.bot_config.exchange_b,
@@ -259,7 +260,7 @@ class SwapArbStrategyBot(BaseBot):
                             )
 
                         self.trader_client_a.ws_place_order(order_a)
-                        self.trader_client_b.ws_place_order(order_b)
+                        #self.trader_client_b.ws_place_order(order_b)
                         self.position_count += 1
                     finally:
                         self.working_pair.remove(symbol)

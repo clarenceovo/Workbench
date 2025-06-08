@@ -218,7 +218,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
         """
         endpoint = "/fapi/v2/balance"
         result = self._send_signed_request("GET", endpoint)
-        self.logger.info(f"Account balance: {result}")
+        #self.logger.info(f"Account balance: {result}")
         return result
 
 

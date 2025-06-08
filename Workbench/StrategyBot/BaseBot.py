@@ -48,14 +48,13 @@ class BaseBot(object):
     def save_config(self):
         self.logger.info("Saving configuration for bot_id: {}".format(self.bot_id))
         key = "StrategyBot:SwapArb:{}".format(self.bot_id)
-        self.redis_conn.client.set(key, json.dumps(self.bot_config))
+        self.redis_conn.client.set(key, json.dumps(self.bot_config.to_dict(),indent=4))
 
     def disable_trading(self):
         if self.bot_config:
-            if getattr(self.bot_config, "is_trading", False):
-                self.bot_config.is_trading = False
-                self.save_config()
-                self.logger.info("Disabled trading and saved configuration for bot_id: {}".format(self.bot_id))
+            self.bot_config.is_trading = False
+            self.save_config()
+            self.logger.info("Disabled trading and saved configuration for bot_id: {}".format(self.bot_id))
 
 
     def refresh_ts(self):
