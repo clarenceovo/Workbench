@@ -58,6 +58,7 @@ def get_open_interest(client: OKXDataCollector, db_client: QuestDBClient):
             time.sleep(0.2)
         except Exception as e:
             print(f"Error fetching open interest for {uly}: {e}")
+    print(f'Open interest data fetched successfully from OKX @{get_now_utc()}')
 
 if __name__ == "__main__":
     db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
