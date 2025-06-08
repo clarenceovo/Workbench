@@ -36,7 +36,7 @@ class BaseBot(object):
         config = json.loads(t)
         config = SwapArbConfig(**config)
         self.bot_config = config
-        self.logger.info(f'Config:{self.bot_config}')
+        #self.logger.info(f'Config:{self.bot_config}')
 
     def refresh_ts(self):
         """
