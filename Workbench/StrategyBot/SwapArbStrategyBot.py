@@ -260,7 +260,7 @@ class SwapArbStrategyBot(BaseBot):
                             )
 
                         self.trader_client_a.ws_place_order(order_a)
-                        #self.trader_client_b.ws_place_order(order_b)
+                        self.trader_client_b.ws_place_order(order_b)
                         self.position_count += 1
                     finally:
                         self.working_pair.remove(symbol)
