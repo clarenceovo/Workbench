@@ -223,8 +223,7 @@ class SwapArbStrategyBot(BaseBot):
                             continue
                         self.working_pair.append(symbol)
                         if spread_bp > 0:
-                            self.logger.info(f"Placing orders for {symbol} - Buy on {self.bot_config.exchange_a} at {bid_a}, "
-                                             f"Sell on {self.bot_config.exchange_b} at {ask_b}")
+
                             order_a = Order(
                                 exchange=self.bot_config.exchange_a,
                                 symbol=symbol,
@@ -241,8 +240,6 @@ class SwapArbStrategyBot(BaseBot):
                                 quantity=order_qty[1],
                             )
                         else:
-                            self.logger.info(f"Placing orders for {symbol} - Sell on {self.bot_config.exchange_a} at {ask_a}, "
-                                             f"Buy on {self.bot_config.exchange_b} at {bid_b}")
                             order_a = Order(
                                 exchange="Binance",
                                 symbol=symbol,
