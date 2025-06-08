@@ -82,8 +82,6 @@ class SwapArbStrategyBot(BaseBot):
                     long_leg = position_b
                     short_leg = position_a
                 else:
-                    self.logger.error(f"Invalid position directions for symbol {symbol}: "
-                                      f"position_a.direction={position_a.direction}, position_b.direction={position_b.direction}")
                     return
 
                 swap_position = SwapPosition(
