@@ -134,7 +134,7 @@ class SwapArbStrategyBot(BaseBot):
             current_spread = self.spread_book[symbol]
             position_spread = price
             spread = current_spread - position_spread
-            if (abs(spread) > self.bot_config.exit_bp) and symbol not in self.unwinding_pair:
+            if (abs(spread) > self.bot_config.exit_bp and abs(spread) <5000) and symbol not in self.unwinding_pair:
                 self.logger.info(f"Unwinding position for {symbol} due to low spread: {spread:.2f}")
                 self.unwinding_pair.append(symbol)
                 with self.unwind_lock:

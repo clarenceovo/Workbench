@@ -238,13 +238,13 @@ if __name__ == "__main__":
             exchange="BINANCE",
             symbol="IOUSDT",
             direction=OrderDirection.BUY,
-            quantity=131.5,
+            quantity=131.20000005,
             price=0.8,  # Example price, adjust as needed
             order_type=OrderType.MARKET,
             is_market_order=True
         )
     sz =trader.get_order_size("BTCUSDT",100)
-    #trader.ws_place_order(order)
+    trader.ws_place_order(order)
 
     # Example usage
     ##print(trader.get_account_status())
