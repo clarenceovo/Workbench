@@ -192,7 +192,7 @@ class SwapArbStrategyBot(BaseBot):
                 now = get_timestamp()
                 cooldown_ms = 2000
 
-                self.last_trade_ts[symbol] = now
+
 
                 if now - self.event_dict.get(symbol, 0) > 1000 or symbol not in self.event_dict:
                     self.logger.info(f"Arbitrage opportunity found for {symbol}: "
@@ -207,20 +207,17 @@ class SwapArbStrategyBot(BaseBot):
                     continue
                 #Hot logic
                 if now - self.last_trade_ts.get(symbol, 0) < cooldown_ms:
-                    self.logger.info(f"Trade cooldown active for {symbol}, skipping trade.")
+                    #self.logger.info(f"Trade cooldown active for {symbol}, skipping trade.")
                     continue
                 with self.entry_lock:
-
-                    order_qty = self.cal_quantity(symbol, bid_a, 100)
-                    self.logger.info(f"Calculated order quantity for {symbol}: {order_qty}")
-
-                    if symbol in self.working_pair:
-                        self.logger.info(f"Already working on {symbol}, skipping...")
-                        continue
-
-                    self.working_pair.append(symbol)
-
+                    self.last_trade_ts[symbol] = now
                     try:
+                        order_qty = self.cal_quantity(symbol, bid_a, 100)
+                        self.logger.info(f"Calculated order quantity for {symbol}: {order_qty}")
+                        if symbol in self.working_pair:
+                            # self.logger.info(f"Already working on {symbol}, skipping...")
+                            continue
+                        self.working_pair.append(symbol)
                         if spread_bp > 0:
                             self.logger.info(f"Placing orders for {symbol} - Buy on {self.bot_config.exchange_a} at {bid_a}, "
                                              f"Sell on {self.bot_config.exchange_b} at {ask_b}")
