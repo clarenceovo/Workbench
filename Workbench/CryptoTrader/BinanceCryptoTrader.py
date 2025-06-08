@@ -33,7 +33,6 @@ class BinanceCryptoTrader(CryptoTraderBase):
         self.order_book = {}
         self.event_id = {}
         self._create_contract_size_cache()
-
         if start_ws:
             self.ws_trade_client = WebsocketClient(
                 url=BINANCE_FUTURE_TRADE_WS_URL,
@@ -233,13 +232,13 @@ class BinanceCryptoTrader(CryptoTraderBase):
         return result
 
 if __name__ == "__main__":
-    trader = BinanceCryptoTrader(start_ws=False)
+    trader = BinanceCryptoTrader(start_ws=True)
     time.sleep(5)
     order = Order(
             exchange="BINANCE",
             symbol="IOUSDT",
-            direction=OrderDirection.SELL,
-            quantity=273.6,
+            direction=OrderDirection.BUY,
+            quantity=131.5,
             price=0.8,  # Example price, adjust as needed
             order_type=OrderType.MARKET,
             is_market_order=True

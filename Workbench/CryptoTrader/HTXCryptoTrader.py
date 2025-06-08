@@ -142,9 +142,9 @@ class HTXCryptoTrader(CryptoTraderBase):
                 pong = {"op":"pong", "ts": msg["ts"]}
                 self.ws_noti_client.send(pong)
             elif msg.get("op") == "notify":
-                self._position_handler(msg.get("data", []))
+                self._ws_position_handler(msg.get("data", []))
 
-    def _position_handler(self, msg: list):
+    def _ws_position_handler(self, msg: list):
         if len(msg) == 0:
             return
         for item in msg:
@@ -342,10 +342,10 @@ if __name__ == '__main__':
 
     order = Order(
         exchange="HTX",
-        symbol="IO-USDT",
-        direction=OrderDirection.SELL,
+        symbol="SOLV-USDT",
+        direction=OrderDirection.BUY,
         order_type=OrderType.MARKET,
-        quantity=134,
+        quantity=953,
         reduce_only=True,
         is_close_order=True
 

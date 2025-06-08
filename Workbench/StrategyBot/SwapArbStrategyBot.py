@@ -59,7 +59,7 @@ class SwapArbStrategyBot(BaseBot):
             self.redis_conn.set(KEY, json.dumps(book, indent=4))
             self.redis_conn.set(SPREAD_BOOK_KEY, json.dumps(self.spread_book, indent=4))
 
-            time.sleep(1)
+            time.sleep(0.5)
 
     def _check_swap_position(self, book):
         #check the common pairs in both exchanges
@@ -169,7 +169,7 @@ class SwapArbStrategyBot(BaseBot):
         raw_qty = notional / price
         a_qty = self.trader_client_a.get_order_size(symbol, raw_qty)
         b_qty = self.trader_client_b.get_order_size(symbol, raw_qty)
-        return (trim_trailing_zeros(a_qty), trim_trailing_zeros(b_qty))
+        return (float(trim_trailing_zeros(a_qty)), float(trim_trailing_zeros(b_qty)))
 
     def cal(self):
         self.check_connection()
