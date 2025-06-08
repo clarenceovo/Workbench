@@ -37,6 +37,9 @@ HYPERLIQUID_FUTURES_API_URL = "https://api.hyperliquid.xyz/"
 HYPERLIQUID_SPOT_WS_URL = "wss://api.hyperliquid.xyz/ws"
 HYPERLIQUID_FUTURES_WS_URL = "wss://api.hyperliquid.xyz/ws"
 
+#OKX
+OKX_API_URL = "https://www.okx.com"
+
 #QUEST
 QUEST_HOST = "34.97.186.69"
 QUEST_PORT = 9009
