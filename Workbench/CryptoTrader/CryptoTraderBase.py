@@ -43,3 +43,11 @@ class CryptoTraderBase(ABC):
         Must be implemented by subclasses.
         """
         pass
+
+    @abstractmethod
+    def get_order_by_id(self, symbol:str , order_id: str):
+        """
+        Abstract method to get an order by its ID.
+        Must be implemented by subclasses.
+        """
+        pass

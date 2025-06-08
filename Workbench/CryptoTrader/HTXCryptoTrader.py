@@ -1,5 +1,7 @@
 import math
 
+from overrides import overrides
+
 from Workbench.CryptoTrader.CryptoTraderBase import CryptoTraderBase
 from Workbench.CryptoDataConnector.HTXDataCollector import HTXDataCollector
 from Workbench.config.ConnectionConstant import HTX_SPOT_API_URL, HTX_FUTURES_API_URL , HTX_TRADE_WS_URL, HTX_SWAP_WS_NOTIFICATION_URL
@@ -29,8 +31,8 @@ class HTXCryptoTrader(CryptoTraderBase):
         self.spot_base_url = HTX_SPOT_API_URL
         self.futures_base_url = HTX_FUTURES_API_URL
         self.account_url = f"{self.futures_base_url}/v1/account/accounts"
-        self.contract_info = HTXDataCollector().get_contract_details()
 
+        self._create_contract_size_cache()
         if start_ws:
             self.ws_trade_client = WebsocketClient(
                 url=HTX_TRADE_WS_URL,
@@ -45,21 +47,28 @@ class HTXCryptoTrader(CryptoTraderBase):
             self._trade_ws_subscribe()
             self._noti_ws_subscribe()
 
+    def _create_contract_size_cache(self):
+        self.contract_info = HTXDataCollector().get_contract_details()
+        tmp = {}
+        for index, row in self.contract_info.iterrows():
+            code = row['contract_code'].replace('-','')
+            tmp[code] = (row['contract_size'],row['price_tick'])
+
+        setattr(self,"contract_reference",tmp)
+
     def get_order_size(self, symbol: str,quantity :float) -> float:
-        symbol = symbol.replace('USDT','')
-        detail = self.contract_info.query(f'symbol == "{symbol}"')
-        if detail.empty:
+
+        detail = self.contract_reference.get(symbol,None)
+
+        if detail is None:
             self.logger.error(f"Symbol {symbol} not found in contract details.")
             return 0
-        contract_size = float(detail['contract_size'].values[0])
-        step_size = float(detail['price_tick'].values[0])  # You must include this column in your contract_info
-
+        contract_size = float(detail[0])
+        step_size = float(detail[1])
         raw_size = quantity / contract_size
-
         # Round to nearest step_size
         precision = int(round(-math.log10(step_size)))
         order_size = round(raw_size, precision)
-
         return int(order_size)
 
     def _noti_ws_subscribe(self):
@@ -291,6 +300,38 @@ class HTXCryptoTrader(CryptoTraderBase):
             return pd.DataFrame.from_dict(response.json()['data'])
         else:
             raise Exception(f"Failed to get account balance: {response.text}")
+
+
+    def get_order_by_id(self, symbol: str, order_id: str):
+        method = 'POST'
+        base_url = 'api.hbdm.com'
+        request_path = '/linear-swap-api/v1/swap_order_info'
+        url = f'https://{base_url}{request_path}'
+
+        params = {
+            "order_id": order_id,
+            "pair": symbol
+        }
+
+        signed_params = get_htx_signature(
+            self.api_key,
+            self.api_secret,
+            method,
+            base_url,
+            request_path,
+            params
+        )
+
+        response = requests.post(url, params=signed_params)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("status") == "ok":
+                return data["data"][0]  # Assuming it's a list of one order
+            else:
+                raise Exception(f"HTX API returned error: {data}")
+        else:
+            raise Exception(f"Failed to get order info: {response.status_code} - {response.text}")
+
 if __name__ == '__main__':
     # Example usage
     # todo : remove this after testing
@@ -309,6 +350,8 @@ if __name__ == '__main__':
         is_close_order=True
 
     )
+    sz = trader.get_order_size("SOLVUSDT",100)
+    print(sz)
     #trader.ws_place_order(order)
 
 

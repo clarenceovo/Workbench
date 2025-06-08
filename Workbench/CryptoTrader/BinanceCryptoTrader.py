@@ -3,6 +3,9 @@ import time
 import hmac
 import hashlib
 from urllib.parse import urlencode
+
+from overrides import overrides
+
 from Workbench.CryptoTrader.CryptoTraderBase import CryptoTraderBase
 from Workbench.config.ConnectionConstant import (BINANCE_FUTURES_API_URL ,
                                                  BINANCE_FUTURE_TRADE_WS_URL)
@@ -29,7 +32,8 @@ class BinanceCryptoTrader(CryptoTraderBase):
         self.base_url = BINANCE_FUTURES_API_URL
         self.order_book = {}
         self.event_id = {}
-        self.contract_info = BinanceDataCollector().get_contract_details()
+        self._create_contract_size_cache()
+
         if start_ws:
             self.ws_trade_client = WebsocketClient(
                 url=BINANCE_FUTURE_TRADE_WS_URL,
@@ -41,12 +45,23 @@ class BinanceCryptoTrader(CryptoTraderBase):
             self.logger.info("Binance Futures WebSocket client started.")
             time.sleep(1)
 
+    def _create_contract_size_cache(self):
+        """
+        Create a cache for contract sizes.
+        This method can be used to pre-load contract sizes and map to a dict for O(1) access.
+        """
+        self.contract_info = BinanceDataCollector().get_contract_details()
+        tmp = {}
+        for index, row in self.contract_info.iterrows():
+            tmp[row['symbol']] = row['filters']
+        setattr(self,"filter_reference",tmp)
 
 
     @staticmethod
     def generate_signature(secret, params):
         query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
         return hmac.new(secret.encode(), query_string.encode(), hashlib.sha256).hexdigest()
+
 
     def ws_place_order(self,order:Order):
         order_param = {
@@ -77,14 +92,14 @@ class BinanceCryptoTrader(CryptoTraderBase):
         :param symbol: The trading pair symbol.
         :return: The contract size.
         """
-        contract_info = self.contract_info[self.contract_info['symbol'] == symbol]
-        if not contract_info.empty:
-            filters = contract_info['filters'].values[0]
-            lot_size_filter = next(f for f in filters if f['filterType'] == 'LOT_SIZE')
-            step_size = float(lot_size_filter['stepSize'])
-            # Round to the nearest step size
-            adjusted_quantity = round(quantity / step_size) * step_size
-            return adjusted_quantity
+        filters = self.filter_reference.get(symbol, None)
+        if filters:
+            for f in filters:
+                if f['filterType'] == 'LOT_SIZE':
+                    step_size = float(f['stepSize'])
+                    # Round to the nearest step size
+                    adjusted_quantity = round(quantity / step_size) * step_size
+                    return adjusted_quantity
         return 0
 
 
@@ -203,8 +218,22 @@ class BinanceCryptoTrader(CryptoTraderBase):
         self.logger.info(f"Account balance: {result}")
         return result
 
+
+    def get_order_by_id(self, symbol: str, order_id: str):
+        endpoint = "/fapi/v1/order"
+        url = self.base_url + endpoint
+
+        params = {
+            "symbol": symbol.upper(),
+            "timestamp": int(time.time() * 1000)
+        }
+        params["signature"] = self._sign(params)
+
+        result = self._send_signed_request("GET", endpoint, params)
+        return result
+
 if __name__ == "__main__":
-    trader = BinanceCryptoTrader()
+    trader = BinanceCryptoTrader(start_ws=False)
     time.sleep(5)
     order = Order(
             exchange="BINANCE",
@@ -215,7 +244,8 @@ if __name__ == "__main__":
             order_type=OrderType.MARKET,
             is_market_order=True
         )
-    trader.ws_place_order(order)
+    sz =trader.get_order_size("BTCUSDT",100)
+    #trader.ws_place_order(order)
 
     # Example usage
     ##print(trader.get_account_status())
