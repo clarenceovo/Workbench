@@ -227,7 +227,7 @@ class SwapArbStrategyBot(BaseBot):
                     try:
                         order_qty = self.cal_quantity(symbol, bid_a, 100)
                         self.logger.info(f"Calculated order quantity for {symbol}: {order_qty}")
-                        self.send_message("Calculated order quantity for {}: {} @ {}".format(symbol, order_qty,get_now_hkt_string()))
+
                         if symbol in self.working_pair:
                             # self.logger.info(f"Already working on {symbol}, skipping...")
                             continue
@@ -268,6 +268,8 @@ class SwapArbStrategyBot(BaseBot):
 
                         self.trader_client_a.ws_place_order(order_a)
                         self.trader_client_b.ws_place_order(order_b)
+                        self.send_message(
+                            "Calculated order quantity for {}: {} @ {}".format(symbol, order_qty, get_now_hkt_string()))
                         self.position_count += 1
                     finally:
                         self.working_pair.remove(symbol)
