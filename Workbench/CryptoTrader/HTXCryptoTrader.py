@@ -133,7 +133,8 @@ class HTXCryptoTrader(CryptoTraderBase):
             if msg.get("status", None) == "ok":
                 data = msg.get("data", {})
                 if data.get("order_id"):
-                    self.logger.info(f"HTX Order {data.get("order_id")} processed successfully.")
+                    order_id = data.get("order_id")
+                    self.logger.info(f"HTX Order {order_id} processed successfully.")
 
 
     def _noti_ws_handler(self, msg):
