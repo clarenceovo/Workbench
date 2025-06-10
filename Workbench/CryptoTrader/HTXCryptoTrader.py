@@ -347,17 +347,17 @@ if __name__ == '__main__':
 
     order = Order(
         exchange="HTX",
-        symbol="IO-USDT",
+        symbol="DOT-USDT",
         direction=OrderDirection.BUY,
         order_type=OrderType.MARKET,
-        quantity=262,
+        quantity=12,
         reduce_only=True,
         is_close_order=True
 
     )
     #sz = trader.get_order_size("BTCUSDT",100,100500)
     #print(sz)
-    #trader.ws_place_order(order)
+    trader.ws_place_order(order)
 
 
 
