@@ -31,6 +31,9 @@ class SwapArbStrategyBot(BaseBot):
         self.init_market_collector(self.bot_config.exchange_b)
         self.trader_client_a = BinanceCryptoTrader(name=self.bot_config.exchange_a)
         self.trader_client_b = HTXCryptoTrader(name=self.bot_config.exchange_b)
+        self.target_pair = set(self.bot_config.exchange_a_market_list).intersection(set(self.bot_config.exchange_b_market_list))
+        self.target_pair = [item.replace('-', '') for item in self.target_pair]
+        self.logger.info(f'Target:{self.target_pair}')
         self.position_thread = None
         self.spread_book = {}
         self.entry_lock = Lock()
@@ -54,16 +57,20 @@ class SwapArbStrategyBot(BaseBot):
         while True:
             book = {"ts": get_utc_now_ms(),self.bot_config.exchange_a: {}, self.bot_config.exchange_b: {}}
             for position in self.trader_client_a.position_book.positions.values():
+                if position.symbol.replace('-', '') not in self.target_pair:
+                    continue
                 book[self.bot_config.exchange_a][position.symbol.replace('-','')] = position
             for position in self.trader_client_b.position_book.positions.values():
+                if position.symbol.replace('-', '') not in self.target_pair:
+                    continue
                 book[self.bot_config.exchange_b][position.symbol.replace('-','')] = position
             self._check_swap_position(book)
             #convert positions to dict
-            for symbol, position in book[self.bot_config.exchange_a].items():
-                book[self.bot_config.exchange_a][symbol] = position.to_dict()
-            for symbol, position in book[self.bot_config.exchange_b].items():
-                book[self.bot_config.exchange_b][symbol] = position.to_dict()
-            self.redis_conn.set(KEY, json.dumps(book, indent=4))
+            #for symbol, position in book[self.bot_config.exchange_a].items():
+            #    book[self.bot_config.exchange_a][symbol] = position.to_dict()
+            #for symbol, position in book[self.bot_config.exchange_b].items():
+            #    book[self.bot_config.exchange_b][symbol] = position.to_dict()
+            #self.redis_conn.set(KEY, json.dumps(book, indent=4))
             self.redis_conn.set(SPREAD_BOOK_KEY, json.dumps(self.spread_book, indent=4))
 
             time.sleep(0.5)
@@ -71,10 +78,15 @@ class SwapArbStrategyBot(BaseBot):
     def _check_swap_position(self, book):
         #check the common pairs in both exchanges
         common_symbols = set(book[self.bot_config.exchange_a].keys()).intersection(set(book[self.bot_config.exchange_b].keys()))
+
         for symbol in common_symbols:
             position_a = book[self.bot_config.exchange_a][symbol]
             position_b = book[self.bot_config.exchange_b][symbol.replace("-","")]
             if position_a.quantity != 0 or position_b.quantity != 0:
+                #if notional difference of both positions are 50% different, skip
+                if abs(position_a.notional - position_b.notional) / max(position_a.notional, position_b.notional) > 0.5:
+                    #self.logger.warning(f"Notional difference too high for {symbol}: {position_a.notional} vs {position_b.notional}")
+                    continue
                 if position_a.direction == OrderDirection.BUY and position_b.direction == OrderDirection.SELL:
                     long_leg = position_a
                     short_leg = position_b
@@ -82,15 +94,16 @@ class SwapArbStrategyBot(BaseBot):
                     long_leg = position_b
                     short_leg = position_a
                 else:
-                    return
-
+                    self.logger.warning(f"Position direction mismatch for {symbol}: {position_a.direction} vs {position_b.direction}")
+                    continue
                 swap_position = SwapPosition(
                     symbol=symbol,
                     long_leg=long_leg,
                     short_leg=short_leg
                 )
                 self.swap_position_book.add_position(swap_position)
-
+        self.redis_conn.set(f'StrategyBot:SwapArb:SwapPositionBook:{self.bot_id}',
+                            json.dumps(self.swap_position_book.to_json(), indent=4))
 
     def init_bot(self):
         for key, exchange in self.market_connector.items():
@@ -280,5 +293,5 @@ if __name__ == "__main__":
     client = RedisClient(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, password=REDIS_PASSWORD)
     tg = TelegramPostman()
     args = sys.argv[1:]
-    bot_id = args[0] if len(args) > 0 else "ALT1"
+    bot_id = args[0] if len(args) > 0 else "TESTING1"
     bot = SwapArbStrategyBot(client,messenger=tg, bot_id=bot_id)

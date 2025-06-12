@@ -138,7 +138,10 @@ class BinanceCryptoTrader(CryptoTraderBase):
     def _position_handler(self, msg:list):
         for item in msg:
             if item['updateTime'] > 0:
-                self.position_book.add_position(Position.from_binance_position(item))
+                position =Position.from_binance_position(item)
+                if abs(position.quantity) == 0:
+                    continue
+                self.position_book.add_position(position)
 
     def _ws_get_position(self):
         id = get_uuid()

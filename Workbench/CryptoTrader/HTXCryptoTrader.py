@@ -153,7 +153,9 @@ class HTXCryptoTrader(CryptoTraderBase):
         if len(msg) == 0:
             return
         for item in msg:
-            if item.get('volume') >0:
+            if item.get('available') >0:
+                contract_size = self.contract_reference[item['contract_code'].replace('-','')][0]
+                item['available'] = item.get('available', 0) * contract_size
                 self.position_book.add_position(Position.from_htx_position(item))
 
 

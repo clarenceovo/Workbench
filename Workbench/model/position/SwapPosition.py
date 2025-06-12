@@ -57,3 +57,11 @@ class SwapPositionBook:
     @property
     def position_prices(self):
         return {symbol: position.price for symbol, position in self.positions.items()}
+
+    def to_json(self):
+        return {
+            "positions": {symbol: {
+                "long_leg": self.positions[symbol].long_leg.to_dict(),
+                "short_leg": self.positions[symbol].short_leg.to_dict()
+            } for symbol in self.positions}
+        }

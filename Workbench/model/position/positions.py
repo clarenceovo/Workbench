@@ -18,6 +18,14 @@ class Position:
     order_type: str
     direction: OrderDirection
 
+    @property
+    def pnl(self):
+        """
+        Calculate the profit and loss of the position.
+        :return: PnL value.
+        """
+        return round((self.markPrice - self.entryPrice) * self.quantity,3)
+
     @staticmethod
     def from_binance_position(data: dict):
         return Position(
@@ -42,8 +50,8 @@ class Position:
         return Position(
             exchange="HTX",
             symbol=data["contract_code"],
-            quantity=float(data["volume"]),
-            notional=float(data["cost_hold"]),
+            quantity=float(data["available"]),
+            notional=float(data["available"])*float(data['last_price']),
             entryPrice=float(data["cost_open"]),
             markPrice=float(data["last_price"]),
             lastUpdate_ts=get_utc_now_ms(),  # HTX data does not provide a timestamp for updates
@@ -61,13 +69,15 @@ class Position:
             "markPrice": self.markPrice,
             "lastUpdate_ts": self.lastUpdate_ts,
             "order_type": self.order_type,
-            "direction": self.direction.value
+            "direction": self.direction.value,
+            "pnl": self.pnl
         }
 
     def __str__(self):
         return (f"Position(exchange={self.exchange}, symbol={self.symbol}, quantity={self.quantity}, "
                 f"notional={self.notional}, entryPrice={self.entryPrice}, markPrice={self.markPrice}, "
-                f"lastUpdate_ts={self.lastUpdate_ts}, order_type={self.order_type}, direction={self.direction})")
+                f"lastUpdate_ts={self.lastUpdate_ts}, order_type={self.order_type}, direction={self.direction})"
+                f" PnL={self.pnl}")
 
     def __dict__(self):
         return {
@@ -79,7 +89,8 @@ class Position:
             "markPrice": self.markPrice,
             "lastUpdate_ts": self.lastUpdate_ts,
             "order_type": self.order_type,
-            "direction": self.direction.value
+            "direction": self.direction.value,
+            "pnl": self.pnl
         }
 
 class PositionBooks:
