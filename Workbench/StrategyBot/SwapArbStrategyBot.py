@@ -126,7 +126,7 @@ class SwapArbStrategyBot(BaseBot):
         while self.is_active:
             try:
                 self.cal()
-                time.sleep(0.0001)
+                time.sleep(0.001)
             except Exception as e:
                 self.logger.error(f"Error in SwapArbStrategyBot: {e}")
                 time.sleep(5)
@@ -161,10 +161,11 @@ class SwapArbStrategyBot(BaseBot):
             position_spread = price
             spread = current_spread - position_spread
             if (abs(spread) > self.bot_config.exit_bp and abs(spread) <5000) and symbol not in self.unwinding_pair:
+                self._unwind_running = True
                 self.unwinding_pair.append(symbol)
                 self.logger.info(f"Checking position unwind for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
                 with self.unwind_lock:
-                    self._unwind_running = True
+
                     try:
                         del self.swap_position_book.positions[symbol]
                         position_a = self.trader_client_a.position_book.get_position(symbol)
