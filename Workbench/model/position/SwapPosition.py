@@ -62,6 +62,7 @@ class SwapPositionBook:
         return {
             "positions": {symbol: {
                 "long_leg": self.positions[symbol].long_leg.to_dict(),
-                "short_leg": self.positions[symbol].short_leg.to_dict()
+                "short_leg": self.positions[symbol].short_leg.to_dict(),
+                "price": round(self.positions[symbol].price,4)
             } for symbol in self.positions}
         }

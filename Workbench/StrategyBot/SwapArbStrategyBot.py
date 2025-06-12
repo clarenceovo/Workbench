@@ -128,7 +128,7 @@ class SwapArbStrategyBot(BaseBot):
         while self.is_active:
             try:
                 self.cal()
-                time.sleep(0.001)
+                time.sleep(0.0001)
             except Exception as e:
                 self.logger.error(f"Error in SwapArbStrategyBot: {e}")
                 time.sleep(5)
@@ -187,7 +187,8 @@ class SwapArbStrategyBot(BaseBot):
 
                         self.trader_client_a.ws_place_order(order_a)
                         self.trader_client_b.ws_place_order(order_b)
-                        self.position_count -= 1
+                        self.swap_position_book.positions.pop(symbol)
+                        self.logger.info("Unwound position for {} @ {}".format(symbol, get_now_hkt_string()))
 
 
     def cal_quantity(self, symbol: str, price: float, notional: float) -> (float, float):
@@ -225,9 +226,11 @@ class SwapArbStrategyBot(BaseBot):
                                      f"Spread: {spread_bp:.2f}")
                     self.event_dict[symbol] = now
 
-                if self.position_count > self.bot_config.max_position:
+                if len(self.swap_position_book.positions.keys()) > self.bot_config.max_position:
                     continue
                 if not self.bot_config.is_trading:
+                    continue
+                if symbol in self.swap_position_book.positions.keys():
                     continue
                 #Hot logic
                 if now - self.last_trade_ts.get(symbol, 0) < cooldown_ms:

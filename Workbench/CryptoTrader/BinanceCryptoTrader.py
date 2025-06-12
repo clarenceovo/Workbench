@@ -245,7 +245,7 @@ if __name__ == "__main__":
             exchange="BINANCE",
             symbol="GRASSUSDT",
             direction=OrderDirection.SELL,
-            quantity=52.8,
+            quantity=0.9,
             price=0.8,  # Example price, adjust as needed
             order_type=OrderType.MARKET,
             is_market_order=True
