@@ -17,7 +17,7 @@ class Position:
     lastUpdate_ts: int
     order_type: str
     direction: OrderDirection
-    contract_size: Optional[float] = None  # Optional contract size, if applicable
+    contract_size: Optional[float] = 1  # Optional contract size, if applicable
 
     @property
     def pnl(self):
@@ -25,7 +25,7 @@ class Position:
         Calculate the profit and loss of the position.
         :return: PnL value.
         """
-        return round((self.markPrice - self.entryPrice) * self.quantity,3)
+        return round((self.markPrice - self.entryPrice) * self.quantity * self.contract_size,3)
 
     @staticmethod
     def from_binance_position(data: dict):

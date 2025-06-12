@@ -66,14 +66,14 @@ class SwapArbStrategyBot(BaseBot):
                 book[self.bot_config.exchange_b][position.symbol.replace('-','')] = position
             self._check_swap_position(book)
             #convert positions to dict
-            #for symbol, position in book[self.bot_config.exchange_a].items():
-            #    book[self.bot_config.exchange_a][symbol] = position.to_dict()
-            #for symbol, position in book[self.bot_config.exchange_b].items():
-            #    book[self.bot_config.exchange_b][symbol] = position.to_dict()
-            #self.redis_conn.set(KEY, json.dumps(book, indent=4))
+            for symbol, position in book[self.bot_config.exchange_a].items():
+                book[self.bot_config.exchange_a][symbol] = position.to_dict()
+            for symbol, position in book[self.bot_config.exchange_b].items():
+                book[self.bot_config.exchange_b][symbol] = position.to_dict()
+            self.redis_conn.set(KEY, json.dumps(book, indent=4))
             self.redis_conn.set(SPREAD_BOOK_KEY, json.dumps(self.spread_book, indent=4))
 
-            time.sleep(0.5)
+            time.sleep(1)
 
     def _check_swap_position(self, book):
         #check the common pairs in both exchanges
@@ -84,9 +84,6 @@ class SwapArbStrategyBot(BaseBot):
             position_b = book[self.bot_config.exchange_b][symbol.replace("-","")]
             if position_a.quantity != 0 or position_b.quantity != 0:
                 #if notional difference of both positions are 50% different, skip
-                if abs(position_a.notional - position_b.notional) / max(position_a.notional, position_b.notional) > 0.5:
-                    #self.logger.warning(f"Notional difference too high for {symbol}: {position_a.notional} vs {position_b.notional}")
-                    continue
                 if position_a.direction == OrderDirection.BUY and position_b.direction == OrderDirection.SELL:
                     long_leg = position_a
                     short_leg = position_b
@@ -158,8 +155,6 @@ class SwapArbStrategyBot(BaseBot):
             position_spread = price
             spread = current_spread - position_spread
             if (abs(spread) > self.bot_config.exit_bp and abs(spread) <5000) and symbol not in self.unwinding_pair:
-                self.logger.info(f"Unwinding position for {symbol} due to low spread: {spread:.2f}")
-                self.send_message(f"Unwinding position for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
                 self.unwinding_pair.append(symbol)
                 with self.unwind_lock:
                     position_a = self.trader_client_a.position_book.get_position(symbol)
@@ -187,8 +182,11 @@ class SwapArbStrategyBot(BaseBot):
 
                         self.trader_client_a.ws_place_order(order_a)
                         self.trader_client_b.ws_place_order(order_b)
-                        self.swap_position_book.positions.pop(symbol)
-                        self.logger.info("Unwound position for {} @ {}".format(symbol, get_now_hkt_string()))
+                        del self.swap_position_book.positions[symbol]
+                        self.unwinding_pair.remove(symbol)
+                        self.logger.info("Unwind position for {} @ {}".format(symbol, get_now_hkt_string()))
+                        self.send_message(
+                            f"Unwinded position for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
 
 
     def cal_quantity(self, symbol: str, price: float, notional: float) -> (float, float):

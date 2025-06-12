@@ -350,10 +350,10 @@ if __name__ == '__main__':
 
     order = Order(
         exchange="HTX",
-        symbol="SOLV-USDT",
-        direction=OrderDirection.SELL,
+        symbol="XMR-USDT",
+        direction=OrderDirection.BUY,
         order_type=OrderType.MARKET,
-        quantity=227,
+        quantity=31,
         reduce_only=True,
         is_close_order=True
 
