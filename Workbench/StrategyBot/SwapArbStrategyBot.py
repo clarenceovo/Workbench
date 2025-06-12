@@ -181,7 +181,7 @@ class SwapArbStrategyBot(BaseBot):
                     swap = self.swap_position_book.positions[symbol]
                     position_a = swap.long_leg
                     position_b = swap.short_leg
-
+                    del self.swap_position_book.positions[symbol]
                     if position_a and position_b:
                         order_a = Order(
                             exchange=self.bot_config.exchange_a,
