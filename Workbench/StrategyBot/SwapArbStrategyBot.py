@@ -84,23 +84,30 @@ class SwapArbStrategyBot(BaseBot):
         for symbol in common_symbols:
             position_a = book[self.bot_config.exchange_a][symbol]
             position_b = book[self.bot_config.exchange_b][symbol.replace("-","")]
-            if position_a.quantity != 0 or position_b.quantity != 0:
-                #if notional difference of both positions are 50% different, skip
-                if position_a.direction == OrderDirection.BUY and position_b.direction == OrderDirection.SELL:
-                    long_leg = position_a
-                    short_leg = position_b
-                elif position_a.direction == OrderDirection.SELL and position_b.direction == OrderDirection.BUY:
-                    long_leg = position_b
-                    short_leg = position_a
-                else:
-                    self.logger.warning(f"Position direction mismatch for {symbol}: {position_a.direction} vs {position_b.direction}")
-                    continue
-                swap_position = SwapPosition(
-                    symbol=symbol,
-                    long_leg=long_leg,
-                    short_leg=short_leg
-                )
-                self.swap_position_book.add_position(swap_position)
+            if position_a.quantity == 0 or position_b.quantity == 0:
+                continue
+
+            # New: enforce directions are strictly opposite
+            if position_a.direction == position_b.direction:
+                #self.logger.warning(
+                #    f"Position direction mismatch for {symbol}: {position_a.direction} vs {position_b.direction}")
+                continue
+            #if notional difference of both positions are 50% different, skip
+            if position_a.direction == OrderDirection.BUY and position_b.direction == OrderDirection.SELL:
+                long_leg = position_a
+                short_leg = position_b
+            elif position_a.direction == OrderDirection.SELL and position_b.direction == OrderDirection.BUY:
+                long_leg = position_b
+                short_leg = position_a
+            else:
+                #self.logger.warning(f"Position direction mismatch for {symbol}: {position_a.direction} vs {position_b.direction}")
+                continue
+            swap_position = SwapPosition(
+                symbol=symbol,
+                long_leg=long_leg,
+                short_leg=short_leg
+            )
+            self.swap_position_book.add_position(swap_position)
         self.redis_conn.set(f'StrategyBot:SwapArb:SwapPositionBook:{self.bot_id}',
                             json.dumps(self.swap_position_book.to_json(), indent=4))
 
@@ -160,7 +167,7 @@ class SwapArbStrategyBot(BaseBot):
             spread = current_spread - position_spread
 
             # 1. Skip if symbol recently unwinded
-            if symbol in self.last_unwind_ts and now_ms - self.last_unwind_ts.get(symbol,0) < 5000:
+            if symbol in self.last_unwind_ts and now_ms - self.last_unwind_ts.get(symbol,0) < 100000:
                 continue
 
             # 2. Proceed if spread trigger met
