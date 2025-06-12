@@ -74,7 +74,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
         }
         if order.is_market_order is False:
             order_param["price"] = order.price
-
+        order_param = dict(sorted(order_param.items()))
         order_param["signature"] = self._sign(order_param)
         order_payload = {
             "id" : get_uuid(),
@@ -111,9 +111,12 @@ class BinanceCryptoTrader(CryptoTraderBase):
         Handle messages from the Binance Futures trade WebSocket.
         """
         # Implement the logic to handle trade messages
-        #self.logger.info(f"Trade message received: {msg}")
         msg = json.loads(msg)
         action = self.event_id.get(msg['id'],None)
+        status = msg['status']
+        if status != 200:
+            self.logger.error(f"Error in message: {msg}")
+            return
         match action:
             case "order.place":
                 if msg.get('status') == 200:
@@ -254,12 +257,13 @@ if __name__ == "__main__":
     time.sleep(1)
     order = Order(
             exchange="BINANCE",
-            symbol="RESOLVUSDT",
+            symbol="SOPHUSDT",
             direction=OrderDirection.SELL,
-            quantity=336,
+            quantity=0.3,
             price=0.8,  # Example price, adjust as needed
             order_type=OrderType.MARKET,
-            is_market_order=True
+            is_market_order=True,
+            is_close_order=True
         )
     #sz =trader.get_order_size("BTCUSDT",1500,10500.0)
     #print(f"Adjusted order size: {sz}")
