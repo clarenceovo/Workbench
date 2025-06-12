@@ -41,6 +41,7 @@ class SwapArbStrategyBot(BaseBot):
         self.swap_position_book = SwapPositionBook()
         self.working_pair = []
         self.unwinding_pair = []
+        self.last_unwind_ts = {}
         self._unwind_lock = Lock()
         self.position_count = 0
         self.messenger = messenger
@@ -146,30 +147,34 @@ class SwapArbStrategyBot(BaseBot):
             kill_process()
 
     def _check_position_unwind(self):
-        if not self._unwind_lock.acquire(blocking=False):
-            # Another thread is already running this
+        now_ms = get_utc_now_ms()
+        if self.bot_config.is_trading is False:
             return
 
-        try:
-            if self.bot_config.is_trading is False:
-                return
+        position_entry = self.swap_position_book.position_prices
+        for symbol, price in position_entry.items():
+            if symbol not in self.spread_book:
+                continue
+            current_spread = self.spread_book[symbol]
+            position_spread = price
+            spread = current_spread - position_spread
 
-            position_entry = self.swap_position_book.position_prices
-            for symbol, price in position_entry.items():
-                if symbol not in self.spread_book:
-                    continue
-                current_spread = self.spread_book[symbol]
-                position_spread = price
-                spread = current_spread - position_spread
-                if (abs(spread) > self.bot_config.exit_bp and abs(spread) < 5000) and symbol not in self.unwinding_pair:
-                    self.unwinding_pair.append(symbol)
-                    self.logger.info(
-                        f"Checking position unwind for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}"
-                    )
+            # 1. Skip if symbol recently unwinded
+            if symbol in self.last_unwind_ts and now_ms - self.last_unwind_ts.get(symbol,0) < 5000:
+                continue
 
+            # 2. Proceed if spread trigger met
+            if abs(spread) > self.bot_config.exit_bp and abs(spread) < 5000:
+                self.logger.info(
+                    f"Checking position unwind for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
+
+                with self.unwind_lock:
+                    if symbol not in self.swap_position_book.positions:
+                        continue
                     del self.swap_position_book.positions[symbol]
                     position_a = self.trader_client_a.position_book.get_position(symbol)
                     position_b = self.trader_client_b.position_book.get_position(symbol.replace("USDT", "-USDT"))
+
                     if position_a and position_b:
                         order_a = Order(
                             exchange=self.bot_config.exchange_a,
@@ -194,15 +199,10 @@ class SwapArbStrategyBot(BaseBot):
                         self.trader_client_a.ws_place_order(order_a)
                         self.trader_client_b.ws_place_order(order_b)
                         self.send_message(
-                            f"Unwinded position for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}"
-                        )
+                            f"Unwinded position for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
                         self.logger.info(f"Unwind position for {symbol} @ {get_now_hkt_string()}")
-                    self.unwinding_pair.remove(symbol)
-        except Exception as e:
-            self.logger.error(f"Error in _check_position_unwind: {e}")
-        finally:
-            self._unwind_lock.release()
 
+                        self.last_unwind_ts[symbol] = now_ms
 
     def cal_quantity(self, symbol: str, price: float, notional: float) -> (float, float):
         a_qty = self.trader_client_a.get_order_size(symbol, notional,price)
