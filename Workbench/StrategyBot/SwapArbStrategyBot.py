@@ -126,7 +126,7 @@ class SwapArbStrategyBot(BaseBot):
         while self.is_active:
             try:
                 self.cal()
-                time.sleep(0.001)
+                time.sleep(0.0001)
             except Exception as e:
                 self.logger.error(f"Error in SwapArbStrategyBot: {e}")
                 time.sleep(5)
