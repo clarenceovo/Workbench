@@ -17,6 +17,7 @@ class Position:
     lastUpdate_ts: int
     order_type: str
     direction: OrderDirection
+    contract_size: Optional[float] = None  # Optional contract size, if applicable
 
     @property
     def pnl(self):
@@ -51,12 +52,13 @@ class Position:
             exchange="HTX",
             symbol=data["contract_code"],
             quantity=float(data["available"]),
-            notional=float(data["available"])*float(data['last_price']),
+            notional=float(data["available"])*data.get('contract_size')*float(data['last_price']),
             entryPrice=float(data["cost_open"]),
             markPrice=float(data["last_price"]),
             lastUpdate_ts=get_utc_now_ms(),  # HTX data does not provide a timestamp for updates
             order_type="cross",
-            direction=OrderDirection.BUY if data["direction"] == "buy" else OrderDirection.SELL
+            direction=OrderDirection.BUY if data["direction"] == "buy" else OrderDirection.SELL,
+            contract_size=float(data.get("contract_size", 1.0))  # Default to 1 if not provided
         )
 
     def to_dict(self):
