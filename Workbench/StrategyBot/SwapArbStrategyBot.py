@@ -176,11 +176,11 @@ class SwapArbStrategyBot(BaseBot):
                     f"Checking position unwind for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
 
                 with self.unwind_lock:
-                    if symbol not in self.swap_position_book.positions:
+                    if symbol not in self.swap_position_book.positions.keys():
                         continue
-                    del self.swap_position_book.positions[symbol]
-                    position_a = self.trader_client_a.position_book.get_position(symbol)
-                    position_b = self.trader_client_b.position_book.get_position(symbol.replace("USDT", "-USDT"))
+                    swap = self.swap_position_book.positions[symbol]
+                    position_a = swap.long_leg
+                    position_b = swap.short_leg
 
                     if position_a and position_b:
                         order_a = Order(
