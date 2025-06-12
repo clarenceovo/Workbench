@@ -41,6 +41,7 @@ class SwapArbStrategyBot(BaseBot):
         self.swap_position_book = SwapPositionBook()
         self.working_pair = []
         self.unwinding_pair = []
+        self._unwind_running = False
         self.position_count = 0
         self.messenger = messenger
         self.send_message("Initialized SwapArbStrategyBot with ID: {} @ {}".format(self.bot_id, get_utc_now_ms()))
@@ -147,6 +148,8 @@ class SwapArbStrategyBot(BaseBot):
 
 
     def _check_position_unwind(self):
+        if self._unwind_running:
+            return
         if self.bot_config.is_trading is False:
             #self.logger.info("Trading is disabled, skipping position unwind check.")
             return
@@ -161,36 +164,43 @@ class SwapArbStrategyBot(BaseBot):
                 self.unwinding_pair.append(symbol)
                 self.logger.info(f"Checking position unwind for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
                 with self.unwind_lock:
-                    position_a = self.trader_client_a.position_book.get_position(symbol)
-                    position_b = self.trader_client_b.position_book.get_position(symbol.replace("USDT", "-USDT"))
-                    if position_a and position_b:
-                        order_a = Order(
-                            exchange=self.bot_config.exchange_a,
-                            symbol=position_a.symbol,
-                            direction=OrderDirection.SELL if position_a.direction == OrderDirection.BUY else OrderDirection.BUY,
-                            order_type=OrderType.MARKET,
-                            quantity=abs(position_a.quantity),
-                            is_market_order=True,
-                            reduce_only=True,
-                            is_close_order=True
-                        )
-                        order_b = Order(
-                            exchange=self.bot_config.exchange_b,
-                            symbol=position_b.symbol,
-                            direction=OrderDirection.SELL if position_b.direction == OrderDirection.BUY else OrderDirection.BUY,
-                            order_type=OrderType.MARKET,
-                            quantity=abs(position_b.quantity),
-                            reduce_only=True,
-                            is_close_order=True
-                        )
-
-                        self.trader_client_a.ws_place_order(order_a)
-                        self.trader_client_b.ws_place_order(order_b)
-                        self.send_message(
-                            f"Unwinded position for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
+                    self._unwind_running = True
+                    try:
                         del self.swap_position_book.positions[symbol]
-                        self.unwinding_pair.remove(symbol)
-                        self.logger.info("Unwind position for {} @ {}".format(symbol, get_now_hkt_string()))
+                        position_a = self.trader_client_a.position_book.get_position(symbol)
+                        position_b = self.trader_client_b.position_book.get_position(symbol.replace("USDT", "-USDT"))
+                        if position_a and position_b:
+                            order_a = Order(
+                                exchange=self.bot_config.exchange_a,
+                                symbol=position_a.symbol,
+                                direction=OrderDirection.SELL if position_a.direction == OrderDirection.BUY else OrderDirection.BUY,
+                                order_type=OrderType.MARKET,
+                                quantity=abs(position_a.quantity),
+                                is_market_order=True,
+                                reduce_only=True,
+                                is_close_order=True
+                            )
+                            order_b = Order(
+                                exchange=self.bot_config.exchange_b,
+                                symbol=position_b.symbol,
+                                direction=OrderDirection.SELL if position_b.direction == OrderDirection.BUY else OrderDirection.BUY,
+                                order_type=OrderType.MARKET,
+                                quantity=abs(position_b.quantity),
+                                reduce_only=True,
+                                is_close_order=True
+                            )
+
+                            self.trader_client_a.ws_place_order(order_a)
+                            self.trader_client_b.ws_place_order(order_b)
+                            self.send_message(
+                                f"Unwinded position for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
+
+                            self.unwinding_pair.remove(symbol)
+                            self.logger.info("Unwind position for {} @ {}".format(symbol, get_now_hkt_string()))
+                    except Exception as e:
+                        self.logger.error(f"Error during position unwind for {symbol}: {e}")
+                    finally:
+                        self._unwind_running = False
 
 
 
