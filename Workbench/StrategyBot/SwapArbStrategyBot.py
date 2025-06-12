@@ -143,11 +143,13 @@ class SwapArbStrategyBot(BaseBot):
             self.logger.error("One of the traders is not active. killing the bot... and disable trading")
             self.disable_trading()
             kill_process()
+
+
+
     def _check_position_unwind(self):
         if self.bot_config.is_trading is False:
             #self.logger.info("Trading is disabled, skipping position unwind check.")
             return
-
         position_entry = self.swap_position_book.position_prices
         for symbol, price in position_entry.items():
             if symbol not in self.spread_book.keys():
@@ -157,6 +159,7 @@ class SwapArbStrategyBot(BaseBot):
             spread = current_spread - position_spread
             if (abs(spread) > self.bot_config.exit_bp and abs(spread) <5000) and symbol not in self.unwinding_pair:
                 self.unwinding_pair.append(symbol)
+                self.logger.info(f"Checking position unwind for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
                 with self.unwind_lock:
                     position_a = self.trader_client_a.position_book.get_position(symbol)
                     position_b = self.trader_client_b.position_book.get_position(symbol.replace("USDT", "-USDT"))
@@ -183,11 +186,12 @@ class SwapArbStrategyBot(BaseBot):
 
                         self.trader_client_a.ws_place_order(order_a)
                         self.trader_client_b.ws_place_order(order_b)
+                        self.send_message(
+                            f"Unwinded position for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
                         del self.swap_position_book.positions[symbol]
                         self.unwinding_pair.remove(symbol)
                         self.logger.info("Unwind position for {} @ {}".format(symbol, get_now_hkt_string()))
-                        self.send_message(
-                            f"Unwinded position for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
+
 
 
     def cal_quantity(self, symbol: str, price: float, notional: float) -> (float, float):

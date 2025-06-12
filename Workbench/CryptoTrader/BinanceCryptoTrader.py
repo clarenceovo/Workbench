@@ -254,9 +254,9 @@ if __name__ == "__main__":
     time.sleep(1)
     order = Order(
             exchange="BINANCE",
-            symbol="SOPHUSDT",
+            symbol="RESOLVUSDT",
             direction=OrderDirection.SELL,
-            quantity=1975,
+            quantity=336,
             price=0.8,  # Example price, adjust as needed
             order_type=OrderType.MARKET,
             is_market_order=True
