@@ -257,9 +257,9 @@ if __name__ == "__main__":
     time.sleep(1)
     order = Order(
             exchange="BINANCE",
-            symbol="XMRUSDT.",
+            symbol="XMRUSDT",
             direction=OrderDirection.BUY,
-            quantity=0.31,
+            quantity=0.62,
             price=0.8,  # Example price, adjust as needed
             order_type=OrderType.MARKET,
             is_market_order=True,

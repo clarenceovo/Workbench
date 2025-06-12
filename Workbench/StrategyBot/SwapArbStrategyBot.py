@@ -213,7 +213,7 @@ class SwapArbStrategyBot(BaseBot):
         self.check_connection()
         bbo_a = self.market_connector[self.bot_config.exchange_a].tickerbook
         bbo_b = self.market_connector[self.bot_config.exchange_b].tickerbook
-
+        self._check_position_unwind()
         for symbol in bbo_a.keys():
             if symbol not in bbo_b:
                 continue
@@ -225,8 +225,7 @@ class SwapArbStrategyBot(BaseBot):
 
             spread_bp = (bid_a - ask_b) / ask_b * 10000 if ask_b != 0 else 0
             self.spread_book[symbol] = spread_bp
-            if symbol not in self.unwinding_pair:
-                self._check_position_unwind()
+
             if abs(spread_bp) > self.bot_config.upper_bound_entry_bp:
                 now = get_timestamp()
                 cooldown_ms = 2000
