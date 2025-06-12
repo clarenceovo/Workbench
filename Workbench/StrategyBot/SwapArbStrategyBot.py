@@ -125,7 +125,7 @@ class SwapArbStrategyBot(BaseBot):
         while self.is_active:
             try:
                 self.cal()
-                time.sleep(0.0001)
+                time.sleep(0.001)
             except Exception as e:
                 self.logger.error(f"Error in SwapArbStrategyBot: {e}")
                 time.sleep(5)
@@ -147,6 +147,7 @@ class SwapArbStrategyBot(BaseBot):
         if self.bot_config.is_trading is False:
             #self.logger.info("Trading is disabled, skipping position unwind check.")
             return
+
         position_entry = self.swap_position_book.position_prices
         for symbol, price in position_entry.items():
             if symbol not in self.spread_book.keys():
@@ -210,7 +211,8 @@ class SwapArbStrategyBot(BaseBot):
 
             spread_bp = (bid_a - ask_b) / ask_b * 10000 if ask_b != 0 else 0
             self.spread_book[symbol] = spread_bp
-            self._check_position_unwind()
+            if symbol not in self.unwinding_pair:
+                self._check_position_unwind()
             if abs(spread_bp) > self.bot_config.upper_bound_entry_bp:
                 now = get_timestamp()
                 cooldown_ms = 2000

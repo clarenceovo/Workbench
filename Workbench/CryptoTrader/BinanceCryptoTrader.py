@@ -205,6 +205,17 @@ class BinanceCryptoTrader(CryptoTraderBase):
         self.logger.info(f"Position for {symbol}: {result}")
         return result
 
+    def get_all_positions(self):
+        """
+        Fetch all positions with non-zero quantities from Binance Futures.
+        """
+        endpoint = "/fapi/v2/positionRisk"
+        result = self._send_signed_request("GET", endpoint)
+
+        # Filter positions with non-zero quantity
+        available_positions = [pos for pos in result if float(pos['positionAmt']) != 0]
+        return available_positions
+
     def get_account_status(self):
         """
         Get the current account information and status.
@@ -243,9 +254,9 @@ if __name__ == "__main__":
     time.sleep(1)
     order = Order(
             exchange="BINANCE",
-            symbol="GRASSUSDT",
+            symbol="SOPHUSDT",
             direction=OrderDirection.SELL,
-            quantity=0.9,
+            quantity=1975,
             price=0.8,  # Example price, adjust as needed
             order_type=OrderType.MARKET,
             is_market_order=True
