@@ -296,5 +296,5 @@ if __name__ == "__main__":
     client = RedisClient(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, password=REDIS_PASSWORD)
     tg = TelegramPostman()
     args = sys.argv[1:]
-    bot_id = args[0] if len(args) > 0 else "TESTING1"
+    bot_id = args[0] if len(args) > 0 else "ALT1"
     bot = SwapArbStrategyBot(client,messenger=tg, bot_id=bot_id)
