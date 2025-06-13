@@ -68,7 +68,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
             "apiKey": self.api_key,
             "quantity": order.quantity,  # Example quantity, adjust as needed
             "side": "BUY" if order.direction == OrderDirection.BUY else "SELL",
-            "symbol": order.symbol,
+            "symbol": order.symbol.replace('-',''),
             "timestamp": int(time.time() * 1000),
             "type": "MARKET" if order.order_type == OrderType.MARKET else "LIMIT",
         }
@@ -257,9 +257,9 @@ if __name__ == "__main__":
     time.sleep(1)
     order = Order(
             exchange="BINANCE",
-            symbol="RESOLVUSDT",
+            symbol="ETHUSDT",
             direction=OrderDirection.SELL,
-            quantity=1336,
+            quantity=0.68,
             price=0.8,  # Example price, adjust as needed
             order_type=OrderType.MARKET,
             is_market_order=True,
@@ -267,7 +267,7 @@ if __name__ == "__main__":
         )
     #sz =trader.get_order_size("BTCUSDT",1500,10500.0)
     #print(f"Adjusted order size: {sz}")
-    trader.ws_place_order(order)
+    #trader.ws_place_order(order)
 
     # Example usage
     ##print(trader.get_account_status())

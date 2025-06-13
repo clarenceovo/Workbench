@@ -261,7 +261,9 @@ class SwapArbStrategyBot(BaseBot):
                     try:
                         order_qty = self.cal_quantity(symbol, bid_a, 100)
                         self.logger.info(f"Calculated order quantity for {symbol}: {order_qty}")
-
+                        if order_qty[0] == 0 or order_qty[1] == 0:
+                            self.logger.warning(f"Order quantity for {symbol} is zero, skipping...")
+                            continue
                         if symbol in self.working_pair:
                             # self.logger.info(f"Already working on {symbol}, skipping...")
                             continue

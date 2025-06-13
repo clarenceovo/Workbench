@@ -168,8 +168,10 @@ class HTXCryptoTrader(CryptoTraderBase):
         :param mode: Order type, either 'limit' or 'market'.
         :return: Response from the WebSocket server.
         """
-
+        if '-' not in order.symbol:
+            order.symbol = order.symbol.replace('USDT','-USDT')
         payload = order.to_htx_order()
+
         self.logger.info(f"Placing order {order.client_order_id} via WebSocket: {payload}")
         self.ws_trade_client.send(payload)
 
