@@ -77,3 +77,13 @@ class OKXDataCollector(BaseDataCollector):
         resp = self.session.get(url)
         resp.raise_for_status()
         return resp.json()["data"][0]["ts"]
+
+    def get_option_chain(self, symbol='BTC-USDT'):
+        """
+        Get the option chain for a given symbol.
+        """
+        url = f"{self.base_url}/api/v5/public/instruments"
+        params = {"instType": "OPTION", "uly": symbol}
+        resp = self.session.get(url, params=params)
+        resp.raise_for_status()
+        return pd.DataFrame.from_dict(resp.json()["data"])

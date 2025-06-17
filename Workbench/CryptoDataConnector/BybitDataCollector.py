@@ -71,3 +71,13 @@ class BybitDataCollector(BaseDataCollector):
 
     def get_depth(self):
         pass
+
+    def get_option_chain(self, symbol='BTCUSDT'):
+        """
+        Get the option chain for a given symbol.
+        """
+        url = f"{self.base_url}/v5/option/option-chain"
+        params = {"symbol": symbol}
+        resp = requests.get(url, params=params, headers=self.headers)
+        resp.raise_for_status()
+        return resp.json().get("result", {}).get("list", [])

@@ -1,4 +1,6 @@
 import pandas as pd
+from datetime import datetime, timedelta
+from Workbench.model.option.option import Option
 from Workbench.CryptoDataConnector.BaseDataCollector import BaseDataCollector
 from Workbench.config.ConnectionConstant import BINANCE_FUTURES_API_URL , BINANCE_SPOT_WS_URL
 from enum import Enum
@@ -57,3 +59,55 @@ class BinanceDataCollector(BaseDataCollector):
         resp.raise_for_status()
         return resp.json()["serverTime"]
 
+    def get_option_chain(self, symbol='BTCUSDT'):
+        """
+        Get the option chain for a given symbol.
+        """
+        url = "https://eapi.binance.com/eapi/v1/exchangeInfo"
+        resp = self.session.get(url)
+        resp.raise_for_status()
+        data = resp.json()
+
+        # Filter contracts for the given underlying symbol
+        return [opt for opt in data['optionSymbols'] if opt['underlying'] == symbol]
+
+    def get_option_open_interest(self,symbol: str):
+        url = "https://eapi.binance.com/eapi/v1/openInterest"
+        params = {"symbol": symbol}
+        resp = self.session.get(url,params=params)
+        resp.raise_for_status()
+        return resp.json()
+
+    def get_option_ticker(self,symbol):
+        url = "https://eapi.binance.com/eapi/v1/ticker"
+        params = {"symbol": symbol}
+        resp = self.session.get(url,params=params)
+        resp.raise_for_status()
+        return resp.json()
+
+    def get_option_by_symbol(self, symbol_info:dict):
+
+        symbol = symbol_info["symbol"]
+        try:
+            ticker = self.get_option_ticker(symbol)
+            oi = self.get_option_open_interest(symbol)
+        except Exception as e:
+            print(f"Error fetching data for {symbol}: {e}")
+            return None
+
+        return Option(
+            contractSymbol=symbol,
+            strike=float(symbol_info["strikePrice"]),
+            lastPrice=float(ticker["lastPrice"]),
+            bid=float(ticker["bidPrice"]),
+            ask=float(ticker["askPrice"]),
+            change=float(ticker["priceChange"]),
+            percentChange=float(ticker["priceChangePercent"]),
+            openInterest=oi,
+            impliedVolatility=float(ticker["impliedVolatility"]),
+            inTheMoney=bool(symbol_info["inTheMoney"]),
+            lastTradeDate=datetime.utcfromtimestamp(int(ticker["time"]) / 1000),
+            expiration=datetime.strptime(symbol_info["expiryDate"], "%Y-%m-%d"),
+            currency="USDT",  # Binance options are quoted in USDT
+            volume=int(ticker["volume"])
+        )
