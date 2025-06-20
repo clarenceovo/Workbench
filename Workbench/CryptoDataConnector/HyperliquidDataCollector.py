@@ -72,6 +72,7 @@ class HyperliquidDataCollector(BaseDataCollector):
 
         return self._post(payload)
 
+
 if __name__ == '__main__':
     collector = HyperliquidDataCollector()
     print(collector.get_instrument())
