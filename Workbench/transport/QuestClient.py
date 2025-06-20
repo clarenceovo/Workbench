@@ -18,7 +18,7 @@ class QuestBatch:
 
 
 class QuestDBClient(BaseHandler):
-    def __init__(self, host, port, batch_size=100, flush_interval=0.5,read_only=False):
+    def __init__(self, host, port, batch_size=1000, flush_interval=0.5,read_only=False):
         super().__init__("QuestDBClient")
         self.is_active = True
         self.host = host
@@ -96,11 +96,13 @@ class QuestDBClient(BaseHandler):
                                        symbols=item.symbol,
                                        columns=item.columns,
                                        at=ts)
-                            sender.flush()
+                            #sender.flush()
                     except Exception as e:
                         print(e)
                     sender.flush()
                     time.sleep(self.flush_interval)
+                    #check Sender status
+
 
             except Empty:
                 continue

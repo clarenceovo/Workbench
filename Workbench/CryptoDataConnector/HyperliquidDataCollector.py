@@ -54,6 +54,24 @@ class HyperliquidDataCollector(BaseDataCollector):
         # This method would need to be implemented using the exchange or websocket API.
         raise NotImplementedError("get_depth is not implemented for Hyperliquid.")
 
+    def get_historical_funding(self, symbol, start_time_ms: int, end_time_ms: int):
+        """
+        Fetch historical funding rates for a given symbol from Hyperliquid.
+
+        :param symbol: The coin symbol, e.g., 'ETH', 'BTC'.
+        :param start_time_ms: Start of the time range in milliseconds (Unix time).
+        :param end_time_ms: Optional end time in milliseconds. Defaults to current time.
+        :return: List of funding history records.
+        """
+        payload = {
+            "type": "fundingHistory",
+            "coin": symbol,
+            "startTime": start_time_ms,
+            "endTime": end_time_ms
+        }
+
+        return self._post(payload)
+
 if __name__ == '__main__':
     collector = HyperliquidDataCollector()
     print(collector.get_instrument())
