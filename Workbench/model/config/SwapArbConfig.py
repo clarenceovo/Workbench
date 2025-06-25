@@ -40,5 +40,16 @@ class SwapArbConfig:
             "is_depth_check": self.is_depth_check
         }
 
+    @staticmethod
+    def get_updated_field(a,b):
+        changed_fields = {}
+        for field in fields(a):
+            field_name = field.name
+            value_a = getattr(a, field_name)
+            value_b = getattr(b, field_name)
+            if value_a != value_b:
+                changed_fields[field_name] = (value_a, value_b)
+        return changed_fields
+
     def __str__(self):
         return json.dumps(self.to_dict(), indent=4)

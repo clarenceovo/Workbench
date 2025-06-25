@@ -7,12 +7,13 @@ import json
 import logging
 class BaseBot(object):
     KEY = "StrategyBot:SwapArb:{}"  # Placeholder for the Redis key format
-    def __init__(self, redis_conn: RedisClient, bot_id: str):
+    def __init__(self, redis_conn: RedisClient, bot_id: str,messenger=None):
         self.logger = logging.getLogger(type(self).__name__)
         self.redis_conn = redis_conn
         self.bot_id = bot_id
         self.is_active = True
         self.last_update_config = None
+        self.messenger = messenger  # Optional messenger for alerts
         self.last_alert = None
         self.last_ts = get_utc_now_ms()
         self.bot_config = None
@@ -36,14 +37,22 @@ class BaseBot(object):
         config = json.loads(t)
         config = SwapArbConfig(**config)
         #check if the config is same as the last one
-        if self.last_update_config is not None and config == self.bot_config:
+        if config == self.bot_config:
             #self.logger.info("Configuration has not changed, skipping reload.")
             return
-        else:
-            #log the change
-            self.logger.info("Reloading configuration for bot_id: {}".format(self.bot_id))
+        if self.bot_config is None:
+            self.logger.info(f"Initializing configuration for bot_id: {self.bot_id}")
             self.bot_config = config
-        #self.logger.info(f'Config:{self.bot_config}')
+            self.last_update_config = config
+        else :
+            updated_fields = SwapArbConfig.get_updated_field(config,self.bot_config)
+            if updated_fields:
+                self.logger.info(f"Configuration updated for bot_id: {self.bot_id}, changed fields: {updated_fields}")
+                self.send_message('Configuration updated for bot_id: {}, changed fields: {}'.format(self.bot_id, updated_fields))
+            else:
+                self.logger.info(f"No changes in configuration for bot_id: {self.bot_id}")
+            self.bot_config = config
+            self.last_update_config = config
 
     def save_config(self):
         self.logger.info("Saving configuration for bot_id: {}".format(self.bot_id))
@@ -81,6 +90,13 @@ class BaseBot(object):
             raise ValueError("Kucoin market collector is not implemented yet.")
         else:
             raise ValueError("Unknown exchange name: {}".format(exchange_name))
+
+
+    def send_message(self, message: str):
+        if self.messenger is None:
+            self.logger.warning("Messenger is not initialized, cannot send message.")
+            return
+        self.messenger.send_message(text=message)
 
     def init_trader(self, exchange_name:str):
         """

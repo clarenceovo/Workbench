@@ -23,7 +23,7 @@ class SwapArbStrategyBot(BaseBot):
     bot_config : SwapArbConfig
     def __init__(self, redis_conn: RedisClient,messenger, bot_id:str):
         self.publish_mode = False
-        super().__init__(redis_conn, bot_id)
+        super().__init__(redis_conn, bot_id,messenger)
         self.logger.info("Initializing SwapArbStrategyBot...")
         self.event_dict = {}
         self.last_trade_ts = {}
@@ -44,19 +44,17 @@ class SwapArbStrategyBot(BaseBot):
         self.last_unwind_ts = {}
         self._unwind_lock = Lock()
         self.position_count = 0
-        self.messenger = messenger
         self.send_message("Initialized SwapArbStrategyBot with ID: {} @ {}".format(self.bot_id, get_utc_now_ms()))
         self.init_bot()
 
 
-    def send_message(self, message: str):
-        self.messenger.send_message(text=message)
+
 
     def __publish_position(self):
         KEY = f'StrategyBot:SwapArb:Position:{self.bot_id}'
         SPREAD_BOOK_KEY = f'StrategyBot:SwapArb:SpreadBook:{self.bot_id}'
-        self.reload_config()
         while True:
+            self.reload_config()
             book = {"ts": get_utc_now_ms(),self.bot_config.exchange_a: {}, self.bot_config.exchange_b: {}}
             for position in self.trader_client_a.position_book.positions.values():
                 if position.symbol.replace('-', '') not in self.target_pair:
