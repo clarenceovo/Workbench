@@ -46,6 +46,7 @@ class BinanceDataCollector(BaseDataCollector):
         resp.raise_for_status()
         return resp.json()
 
+
     def get_funding(self, symbol, limit):
         url = f"{self.base_futures_url}/fapi/v1/fundingRate"
         params = {"symbol": symbol, "limit": limit}

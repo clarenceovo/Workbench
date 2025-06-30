@@ -235,13 +235,13 @@ class SwapArbStrategyBot(BaseBot):
                 now = get_timestamp()
                 cooldown_ms = 2000
 
-
-
                 if now - self.event_dict.get(symbol, 0) > 1000 or symbol not in self.event_dict:
                     self.logger.info(f"Arbitrage opportunity found for {symbol}: "
                                      f"Bid on {self.bot_config.exchange_a}: {bid_a}, "
                                      f"Ask on {self.bot_config.exchange_b}: {ask_b}, "
-                                     f"Spread: {spread_bp:.2f}")
+                                     f"Spread: {spread_bp:.2f}\n"
+                                     f'A BO:{(ask_a-bid_a)/ask_a * 10000:.2f} | B BO:{(ask_b-bid_b)/ask_b * 10000:.2f} @ {get_now_hkt_string()}')
+
                     self.event_dict[symbol] = now
 
                 if len(self.swap_position_book.positions.keys()) > self.bot_config.max_position:

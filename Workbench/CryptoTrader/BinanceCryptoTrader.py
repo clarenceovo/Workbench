@@ -8,17 +8,18 @@ from urllib.parse import urlencode
 from overrides import overrides
 
 from Workbench.CryptoTrader.CryptoTraderBase import CryptoTraderBase
-from Workbench.config.ConnectionConstant import (BINANCE_FUTURES_API_URL ,
+from Workbench.config.ConnectionConstant import (BINANCE_FUTURES_API_URL,
                                                  BINANCE_FUTURE_TRADE_WS_URL)
 from Workbench.config.CredentialConstant import BINANCE_API_KEY, BINANCE_API_SECRET
 from Workbench.model.OrderEnum import OrderSide, OrderDirection, OrderType
 from Workbench.model.order.Order import Order
-from Workbench.model.position.positions import Position , PositionBooks
+from Workbench.model.position.positions import Position, PositionBooks
 from Workbench.transport.websocket_client import WebsocketClient
 from Workbench.CryptoDataConnector.BinanceDataCollector import BinanceDataCollector
 from threading import Thread
 
 from Workbench.util.OrderUtil import get_uuid
+
 
 class BinanceCryptoTrader(CryptoTraderBase):
     """
@@ -28,7 +29,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
     def __init__(self, name="BinanceFuturesTrader",
                  api_key=BINANCE_API_KEY,
                  api_secret=BINANCE_API_SECRET,
-                 start_ws = True):
+                 start_ws=True):
         super().__init__(name, api_key, api_secret)
         self.base_url = BINANCE_FUTURES_API_URL
         self.order_book = {}
@@ -54,21 +55,23 @@ class BinanceCryptoTrader(CryptoTraderBase):
         tmp = {}
         for index, row in self.contract_info.iterrows():
             tmp[row['symbol']] = row['filters']
-        setattr(self,"filter_reference",tmp)
-
+        setattr(self, "filter_reference", tmp)
 
     @staticmethod
     def generate_signature(secret, params):
         query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
         return hmac.new(secret.encode(), query_string.encode(), hashlib.sha256).hexdigest()
 
+    def get_account_token_balance(self):
+        ret = self.get_account_balance()
+        return [{asset['asset'] : asset['balance']} for asset in ret if float(asset['balance']) > 0]
 
-    def ws_place_order(self,order:Order):
+    def ws_place_order(self, order: Order):
         order_param = {
             "apiKey": self.api_key,
             "quantity": order.quantity,  # Example quantity, adjust as needed
             "side": "BUY" if order.direction == OrderDirection.BUY else "SELL",
-            "symbol": order.symbol.replace('-',''),
+            "symbol": order.symbol.replace('-', ''),
             "timestamp": int(time.time() * 1000),
             "type": "MARKET" if order.order_type == OrderType.MARKET else "LIMIT",
         }
@@ -77,7 +80,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
         order_param = dict(sorted(order_param.items()))
         order_param["signature"] = self._sign(order_param)
         order_payload = {
-            "id" : get_uuid(),
+            "id": get_uuid(),
             "method": "order.place",
             "params": order_param
         }
@@ -86,7 +89,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
         self.logger.info(f"Sending order:{order_payload}")
         self.ws_trade_client.send(order_payload)
 
-    def get_order_size(self, symbol: str , quantity:float,price:float) -> float:
+    def get_order_size(self, symbol: str, quantity: float, price: float) -> float:
         """
         Get the contract size for a given symbol.
         :param symbol: The trading pair symbol.
@@ -105,14 +108,13 @@ class BinanceCryptoTrader(CryptoTraderBase):
                     return max(round(adjusted_quantity, precision), min_qty)
         return 0
 
-
     def _trade_ws_handler(self, msg):
         """
         Handle messages from the Binance Futures trade WebSocket.
         """
         # Implement the logic to handle trade messages
         msg = json.loads(msg)
-        action = self.event_id.get(msg['id'],None)
+        action = self.event_id.get(msg['id'], None)
         status = msg['status']
         if status != 200:
             self.logger.error(f"Error in message: {msg}")
@@ -138,10 +140,10 @@ class BinanceCryptoTrader(CryptoTraderBase):
             self._ws_get_position()
             time.sleep(1)
 
-    def _position_handler(self, msg:list):
+    def _position_handler(self, msg: list):
         for item in msg:
             if item['updateTime'] > 0:
-                position =Position.from_binance_position(item)
+                position = Position.from_binance_position(item)
                 if abs(position.quantity) == 0:
                     continue
                 self.position_book.add_position(position)
@@ -160,7 +162,6 @@ class BinanceCryptoTrader(CryptoTraderBase):
         }
         self.event_id[id] = "account.position"
         self.ws_trade_client.send(payload)
-
 
     def _sign(self, params: dict) -> str:
         query_string = urlencode(params)
@@ -217,7 +218,14 @@ class BinanceCryptoTrader(CryptoTraderBase):
 
         # Filter positions with non-zero quantity
         available_positions = [pos for pos in result if float(pos['positionAmt']) != 0]
-        return available_positions
+        return
+
+    def get_active_position_symbol(self):
+        ret = []
+        pos = self.get_all_positions()
+        for p in pos:
+            ret.append(p['symbol'])
+        return ret
 
     def get_account_status(self):
         """
@@ -228,16 +236,14 @@ class BinanceCryptoTrader(CryptoTraderBase):
         self.logger.info(f"Account status: {result}")
         return result
 
-
     def get_account_balance(self):
         """
         Get USDT balance of the futures account.
         """
         endpoint = "/fapi/v2/balance"
         result = self._send_signed_request("GET", endpoint)
-        #self.logger.info(f"Account balance: {result}")
+        # self.logger.info(f"Account balance: {result}")
         return result
-
 
     def get_order_by_id(self, symbol: str, order_id: str):
         endpoint = "/fapi/v1/order"
@@ -252,24 +258,25 @@ class BinanceCryptoTrader(CryptoTraderBase):
         result = self._send_signed_request("GET", endpoint, params)
         return result
 
+
 if __name__ == "__main__":
     trader = BinanceCryptoTrader(start_ws=True)
     time.sleep(1)
     order = Order(
-            exchange="BINANCE",
-            symbol="ETHUSDT",
-            direction=OrderDirection.SELL,
-            quantity=0.68,
-            price=0.8,  # Example price, adjust as needed
-            order_type=OrderType.MARKET,
-            is_market_order=True,
-            is_close_order=True
-        )
-    #sz =trader.get_order_size("BTCUSDT",1500,10500.0)
-    #print(f"Adjusted order size: {sz}")
-    #trader.ws_place_order(order)
+        exchange="BINANCE",
+        symbol="XMRUSDT",
+        direction=OrderDirection.SELL,
+        quantity=0.715,
+        price=0.8,  # Example price, adjust as needed
+        order_type=OrderType.MARKET,
+        is_market_order=True,
+        is_close_order=True
+    )
+    # sz =trader.get_order_size("BTCUSDT",1500,10500.0)
+    # print(f"Adjusted order size: {sz}")
+    trader.ws_place_order(order)
 
     # Example usage
     ##print(trader.get_account_status())
-    #print(trader.get_account_balance())
+    # print(trader.get_account_balance())
     # Place a sample order (make sure to adjust the parameters)

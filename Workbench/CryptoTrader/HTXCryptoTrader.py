@@ -311,6 +311,13 @@ class HTXCryptoTrader(CryptoTraderBase):
         else:
             raise Exception(f"Failed to get account balance: {response.text}")
 
+    def get_active_position_symbol(self):
+        position = list(self.get_future_account_info()['contract_detail'].values[0])
+        ret = []
+        for pos in position:
+            if pos['margin_position'] > 0:
+                ret.append(pos['contract_code'].replace('-',''))
+        return ret
 
     def get_order_by_id(self, symbol: str, order_id: str):
         method = 'POST'
@@ -352,10 +359,10 @@ if __name__ == '__main__':
 
     order = Order(
         exchange="HTX",
-        symbol="IO-USDT",
+        symbol="XMR-USDT",
         direction=OrderDirection.BUY,
         order_type=OrderType.MARKET,
-        quantity=31,
+        quantity=32,
         reduce_only=True,
         is_close_order=True
 
