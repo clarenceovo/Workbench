@@ -200,14 +200,26 @@ class SwapArbStrategyBot(BaseBot):
                             reduce_only=True,
                             is_close_order=True
                         )
-
                         self.trader_client_a.ws_place_order(order_a)
                         self.trader_client_b.ws_place_order(order_b)
                         self.send_message(
                             f"Unwinded position for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
                         self.logger.info(f"Unwind position for {symbol} @ {get_now_hkt_string()}")
-
+                        self._clean_position_book(symbol)
                         self.last_unwind_ts[symbol] = now_ms
+
+
+    def _clean_position_book(self,symbol):
+        try:
+            self.trader_client_a.position_book.remove_position(symbol)
+            self.trader_client_b.position_book.remove_position(symbol)
+        except Exception as e:
+            self.logger.error(f"Error in SwapArbStrategyBot: {e}")
+        finally:
+            self.logger.info(f"Cleaned position book for {symbol}")
+
+
+
 
     def cal_quantity(self, symbol: str, price: float, notional: float) -> (float, float):
         a_qty = self.trader_client_a.get_order_size(symbol, notional,price)

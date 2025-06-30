@@ -121,6 +121,12 @@ class PositionBooks:
     def get_position(self, symbol: str) -> Optional[Position]:
         return self.positions.get(symbol, None)
 
+    def remove_position(self, symbol: str):
+        if symbol in self.positions:
+            _ = self.positions.pop(symbol)
+        else:
+            pass
+
     def to_dict(self):
         return {
             "exchange": self.exchange,
