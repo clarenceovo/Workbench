@@ -211,6 +211,7 @@ class SwapArbStrategyBot(BaseBot):
 
     def _clean_position_book(self,symbol):
         try:
+            self.swap_position_book.remove_position(symbol)
             self.trader_client_a.position_book.remove_position(symbol)
             self.trader_client_b.position_book.remove_position(symbol)
         except Exception as e:

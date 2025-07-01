@@ -122,6 +122,7 @@ class PositionBooks:
         return self.positions.get(symbol, None)
 
     def remove_position(self, symbol: str):
+        symbol = symbol.replace('USDT',"-USDT")
         if symbol in self.positions:
             _ = self.positions.pop(symbol)
         else:
