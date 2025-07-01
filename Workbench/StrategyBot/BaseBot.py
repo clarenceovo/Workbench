@@ -81,9 +81,9 @@ class BaseBot(object):
         set attribute `self.market_data_collector` to an instance of the market data collector.
         """
         if exchange_name == "Binance":
-            self.market_connector['Binance'] = BinanceWSCollector()
+            self.market_connector['Binance'] = BinanceWSCollector(start_quest=False)
         elif exchange_name == "HTX":
-            self.market_connector['HTX'] = HtxWSCollector()
+            self.market_connector['HTX'] = HtxWSCollector(start_quest=False)
         elif exchange_name == "Bybit":
             self.market_connector['Bybit'] = BybitWSCollector()
         elif exchange_name == "Kucoin":

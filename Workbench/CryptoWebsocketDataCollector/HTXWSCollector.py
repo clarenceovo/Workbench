@@ -33,12 +33,13 @@ class HtxWSCollector(BaseWSCollector):
     """
     orderbook: OrderbookCollection
 
-    def __init__(self, url=HTX_FUTURES_WS_URL,is_publish=False):
+    def __init__(self, url=HTX_FUTURES_WS_URL,is_publish=False,start_quest = True):
         super().__init__("HtxWS", url)
         self.is_publish = is_publish
         self.data_collector = HTXDataCollector()
         self.load_instrument()
-        self.db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
+        if start_quest:
+            self.db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
         self.tickerbook = {}
 
 

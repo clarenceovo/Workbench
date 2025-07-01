@@ -41,14 +41,14 @@ class BinanceWSCollector(BaseWSCollector):
     """
     orderbook: OrderbookCollection
 
-    def __init__(self, url=BINANCE_FUTURES_WS_URL):
+    def __init__(self, url=BINANCE_FUTURES_WS_URL, start_quest = True):
         super().__init__("BinanceWS", url)
         self.data_collector = BinanceDataCollector()
         self.load_instrument()
         self.last_publish = {}
         self.tickerbook = {}
-
-        self.db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
+        if start_quest:
+            self.db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
 
     def load_instrument(self):
         obj = self.data_collector.get_contract_details()
