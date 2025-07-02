@@ -359,6 +359,21 @@ if __name__ == '__main__':
 
     order = Order(
         exchange="HTX",
+        symbol="WIF-USDT",
+        direction=OrderDirection.SELL,
+        order_type=OrderType.MARKET,
+        quantity=231,
+        reduce_only=True,
+        is_close_order=True
+
+    )
+    #sz = trader.get_order_size("BTCUSDT",100,100500)
+    #print(sz)
+    trader.ws_place_order(order)
+
+
+    order = Order(
+        exchange="HTX",
         symbol="AAVE-USDT",
         direction=OrderDirection.SELL,
         order_type=OrderType.MARKET,
@@ -370,7 +385,6 @@ if __name__ == '__main__':
     #sz = trader.get_order_size("BTCUSDT",100,100500)
     #print(sz)
     trader.ws_place_order(order)
-
 
 
     try:

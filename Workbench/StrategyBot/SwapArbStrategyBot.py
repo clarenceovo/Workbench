@@ -31,6 +31,11 @@ class SwapArbStrategyBot(BaseBot):
         self.init_market_collector(self.bot_config.exchange_b)
         self.trader_client_a = BinanceCryptoTrader(name=self.bot_config.exchange_a)
         self.trader_client_b = HTXCryptoTrader(name=self.bot_config.exchange_b)
+        try:
+            self.logger.info(f'A:{self.trader_client_a.get_account_token_balance()}')
+            self.logger.info(f'B:{self.trader_client_b.get_account_token_balance()}')
+        except:
+            pass
         self.target_pair = set(self.bot_config.exchange_a_market_list).intersection(set(self.bot_config.exchange_b_market_list))
         self.target_pair = [item.replace('-', '') for item in self.target_pair]
         self.logger.info(f'Target:{self.target_pair}')
@@ -115,7 +120,7 @@ class SwapArbStrategyBot(BaseBot):
             exchange.run()
         self.subscribe_market_data()
         self.position_thread = threading.Thread(target=self.__publish_position, daemon=True).start()
-        time.sleep(1)
+        time.sleep(0.5)
         self.run()
 
     def subscribe_market_data(self):
@@ -143,6 +148,7 @@ class SwapArbStrategyBot(BaseBot):
             pass
         else:
             self.logger.error("One of the exchanges is not active. killing the bot...")
+            self.disable_trading()
             kill_process()
         if (self.trader_client_a.ws_trade_client.is_running and self.trader_client_b.ws_trade_client.is_running):
             pass
