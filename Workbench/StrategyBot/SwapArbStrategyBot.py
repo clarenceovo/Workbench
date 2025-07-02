@@ -205,6 +205,7 @@ class SwapArbStrategyBot(BaseBot):
                         self.send_message(
                             f"Unwinded position for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
                         self.logger.info(f"Unwind position for {symbol} @ {get_now_hkt_string()}")
+                        time.sleep(3)
                         self._clean_position_book(symbol)
                         self.last_unwind_ts[symbol] = now_ms
 
