@@ -32,7 +32,7 @@ class SwapArbStrategyBot(BaseBot):
         self.trader_client_a = BinanceCryptoTrader(name=self.bot_config.exchange_a)
         self.trader_client_b = HTXCryptoTrader(name=self.bot_config.exchange_b)
         try:
-            self.logger.info(f'A:{self.trader_client_a.get_account_token_balance()}')
+            self.logger.info(f'A balance :{self.trader_client_a.get_account_token_balance()}')
             self.logger.info(f'B:{self.trader_client_b.get_account_token_balance()}')
         except:
             pass

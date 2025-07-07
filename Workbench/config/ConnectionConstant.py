@@ -31,6 +31,7 @@ BYBIT_SPOT_WS_URL = "wss://stream.bybit.com/v5/public/spot"
 BYBIT_FUTURES_WS_URL = "wss://stream.bybit.com/v5/public/linear"
 BYBIT_SPOT_API_URL = "https://api.bybit.com"
 BYBIT_FUTURES_API_URL = "https://api.bybit.com"
+BYBIT_FUTURE_TRADE_WS_URL = "wss://stream.bybit.com/v5/private"
 
 # Hyperliquid
 HYPERLIQUID_FUTURES_API_URL = "https://api.hyperliquid.xyz/"

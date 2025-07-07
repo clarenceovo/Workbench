@@ -4,13 +4,14 @@ from overrides import overrides
 
 from Workbench.CryptoTrader.CryptoTraderBase import CryptoTraderBase
 from Workbench.CryptoDataConnector.HTXDataCollector import HTXDataCollector
-from Workbench.config.ConnectionConstant import HTX_SPOT_API_URL, HTX_FUTURES_API_URL , HTX_TRADE_WS_URL, HTX_SWAP_WS_NOTIFICATION_URL
-from Workbench.config.CredentialConstant import HTX_API_KEY , HTX_API_SECRET
+from Workbench.config.ConnectionConstant import HTX_SPOT_API_URL, HTX_FUTURES_API_URL, HTX_TRADE_WS_URL, \
+    HTX_SWAP_WS_NOTIFICATION_URL
+from Workbench.config.CredentialConstant import HTX_API_KEY, HTX_API_SECRET
 from Workbench.model.position.positions import Position
 from Workbench.util.OrderUtil import get_htx_signature
 from Workbench.transport.websocket_client import WebsocketClient
 from Workbench.model.order.Order import Order
-from Workbench.model.OrderEnum import OrderSide , OrderType,OrderDirection
+from Workbench.model.OrderEnum import OrderSide, OrderType, OrderDirection
 from Workbench.util.OrderUtil import decode_gzip_message
 from threading import Thread
 import pandas as pd
@@ -18,6 +19,8 @@ import requests
 import time
 
 DEFAULT_LEVERAGE_RATE = 5  # Default leverage rate for HTX
+
+
 class HTXCryptoTrader(CryptoTraderBase):
     """
     HTX Crypto Trader class for trading on HTX exchange.
@@ -51,14 +54,14 @@ class HTXCryptoTrader(CryptoTraderBase):
         self.contract_info = HTXDataCollector().get_contract_details()
         tmp = {}
         for index, row in self.contract_info.iterrows():
-            code = row['contract_code'].replace('-','')
-            tmp[code] = (row['contract_size'],row['price_tick'])
+            code = row['contract_code'].replace('-', '')
+            tmp[code] = (row['contract_size'], row['price_tick'])
 
-        setattr(self,"contract_reference",tmp)
+        setattr(self, "contract_reference", tmp)
 
-    def get_order_size(self, symbol: str,quantity :float,price:float) -> float:
+    def get_order_size(self, symbol: str, quantity: float, price: float) -> float:
 
-        detail = self.contract_reference.get(symbol,None)
+        detail = self.contract_reference.get(symbol, None)
         raw_quantity = quantity / price
         if detail is None:
             self.logger.error(f"Symbol {symbol} not found in contract details.")
@@ -88,6 +91,7 @@ class HTXCryptoTrader(CryptoTraderBase):
             "topic": "positions_cross.*",
             "cid": "positions_cross_sub_all"
         })
+
     def _trade_ws_subscribe(self):
         """
         Subscribe to HTX WebSocket channels.
@@ -96,14 +100,14 @@ class HTXCryptoTrader(CryptoTraderBase):
         self._trade_ws_authenticate()
         self.logger.info("Subscribing to HTX WebSocket channels...")
 
-
     def _trade_ws_authenticate(self):
         """
         Authenticate the WebSocket connection with HTX.
         This method should be called after the WebSocket connection is established.
         """
         self.logger.info("Authenticating HTX WebSocket connection...")
-        payload = get_htx_signature(self.api_key, self.api_secret,"GET", "api.hbdm.com", "/linear-swap-trade", {},is_ws=True)
+        payload = get_htx_signature(self.api_key, self.api_secret, "GET", "api.hbdm.com", "/linear-swap-trade", {},
+                                    is_ws=True)
         self.ws_trade_client.send(payload)
         self.logger.info("HTX WebSocket authentication message sent.")
 
@@ -113,7 +117,8 @@ class HTXCryptoTrader(CryptoTraderBase):
         This method should be called after the WebSocket connection is established.
         """
         self.logger.info("Authenticating HTX Notification WebSocket connection...")
-        payload = get_htx_signature(self.api_key, self.api_secret,"GET", "api.hbdm.com", "/linear-swap-notification", {},is_ws=True)
+        payload = get_htx_signature(self.api_key, self.api_secret, "GET", "api.hbdm.com", "/linear-swap-notification",
+                                    {}, is_ws=True)
         self.ws_noti_client.send(payload)
         self.logger.info("HTX Notification WebSocket authentication message sent.")
 
@@ -126,15 +131,14 @@ class HTXCryptoTrader(CryptoTraderBase):
 
         if msg.get("op"):
             if msg.get("op") == "ping":
-                pong = {"op":"pong", "ts": msg["ts"]}
+                pong = {"op": "pong", "ts": msg["ts"]}
                 self.ws_trade_client.send(pong)
         else:
-            #self.logger.info(f"Received message: {msg}")
+            # self.logger.info(f"Received message: {msg}")
             if msg.get("status", None) == "ok":
                 data = msg.get("data", {})
                 if data.get("order_id"):
                     self.logger.info(f"HTX Order {data.get("order_id")} processed successfully.")
-
 
     def _noti_ws_handler(self, msg):
         """
@@ -144,7 +148,7 @@ class HTXCryptoTrader(CryptoTraderBase):
         msg = decode_gzip_message(msg)
         if msg.get("op"):
             if msg.get("op") == "ping":
-                pong = {"op":"pong", "ts": msg["ts"]}
+                pong = {"op": "pong", "ts": msg["ts"]}
                 self.ws_noti_client.send(pong)
             elif msg.get("op") == "notify":
                 self._ws_position_handler(msg.get("data", []))
@@ -153,14 +157,13 @@ class HTXCryptoTrader(CryptoTraderBase):
         if len(msg) == 0:
             return
         for item in msg:
-            if item.get('available') >0:
-                contract_size = self.contract_reference[item['contract_code'].replace('-','')][0]
+            if item.get('available') > 0:
+                contract_size = self.contract_reference[item['contract_code'].replace('-', '')][0]
                 item['contract_size'] = contract_size
                 item['available'] = item.get('available', 0)
                 self.position_book.add_position(Position.from_htx_position(item))
 
-
-    def ws_place_order(self, order: Order):
+    def ws_place_order(self, order: Order, reduce_only=False):
         """
         Place an order via WebSocket.
         :param order: Order object containing order details.
@@ -169,14 +172,13 @@ class HTXCryptoTrader(CryptoTraderBase):
         :return: Response from the WebSocket server.
         """
         if '-' not in order.symbol:
-            order.symbol = order.symbol.replace('USDT','-USDT')
+            order.symbol = order.symbol.replace('USDT', '-USDT')
         payload = order.to_htx_order()
 
         self.logger.info(f"Placing order {order.client_order_id} via WebSocket: {payload}")
         self.ws_trade_client.send(payload)
 
-
-    def place_order(self, order: Order, is_market_order: bool = False,mode: str = 'limit'):
+    def place_order(self, order: Order, is_market_order: bool = False, mode: str = 'limit'):
         method = 'POST'
         host = 'api.hbdm.com'
         path = "/linear-swap-api/v1/swap_order"
@@ -187,12 +189,12 @@ class HTXCryptoTrader(CryptoTraderBase):
             order_mode = "market"
 
         params = {
-                    "contract_code":order.symbol,
-                    "direction":order.direction,
-                    "price":order.price,
-                    "lever_rate":DEFAULT_LEVERAGE_RATE,
-                    "volume":1,
-                    "order_price_type": order_mode
+            "contract_code": order.symbol,
+            "direction": order.direction,
+            "price": order.price,
+            "lever_rate": DEFAULT_LEVERAGE_RATE,
+            "volume": 1,
+            "order_price_type": order_mode
 
         }
         signed_params = get_htx_signature(self.api_key, self.api_secret, method, host, path, params)
@@ -202,7 +204,7 @@ class HTXCryptoTrader(CryptoTraderBase):
         else:
             raise Exception(f"Failed to place order: {response.text}")
 
-    def load_position(self, symbol: str,model: str = 'futures'):
+    def load_position(self, symbol: str, model: str = 'futures'):
         # Implement position loading logic here
         if model == 'futures':
             return self._load_futures_position(symbol)
@@ -235,12 +237,12 @@ class HTXCryptoTrader(CryptoTraderBase):
         else:
             raise Exception(f"Failed to get asset valuation: {response.text}")
 
-    def _load_futures_position(self, symbol: str=None):
+    def _load_futures_position(self, symbol: str = None):
         method = 'POST'
         host = 'api.hbdm.com'
         path = '/linear-swap-api/v1/swap_position_info'
         url = f'https://{host}{path}'
-        params = {"contract":"BTC-USDT"} if symbol is None else {"contract": symbol}
+        params = {"contract": "BTC-USDT"} if symbol is None else {"contract": symbol}
         signed_params = get_htx_signature(self.api_key, self.api_secret, method, host, path, params)
         data = {
             'contract': "BTC-USDT" if symbol is None else symbol,
@@ -316,7 +318,7 @@ class HTXCryptoTrader(CryptoTraderBase):
         ret = []
         for pos in position:
             if pos['margin_position'] > 0:
-                ret.append(pos['contract_code'].replace('-',''))
+                ret.append(pos['contract_code'].replace('-', ''))
         return ret
 
     def get_order_by_id(self, symbol: str, order_id: str):
@@ -349,10 +351,10 @@ class HTXCryptoTrader(CryptoTraderBase):
         else:
             raise Exception(f"Failed to get order info: {response.status_code} - {response.text}")
 
+
 if __name__ == '__main__':
     # Example usage
     # todo : remove this after testing
-
 
     trader = HTXCryptoTrader()
     time.sleep(1)
@@ -367,25 +369,9 @@ if __name__ == '__main__':
         is_close_order=True
 
     )
-    #sz = trader.get_order_size("BTCUSDT",100,100500)
-    #print(sz)
+    # sz = trader.get_order_size("BTCUSDT",100,100500)
+    # print(sz)
     trader.ws_place_order(order)
-
-
-    order = Order(
-        exchange="HTX",
-        symbol="AAVE-USDT",
-        direction=OrderDirection.SELL,
-        order_type=OrderType.MARKET,
-        quantity=3,
-        reduce_only=True,
-        is_close_order=True
-
-    )
-    #sz = trader.get_order_size("BTCUSDT",100,100500)
-    #print(sz)
-    trader.ws_place_order(order)
-
 
     try:
         account_info = trader.get_future_account_info()

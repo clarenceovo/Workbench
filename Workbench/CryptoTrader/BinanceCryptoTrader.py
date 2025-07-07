@@ -66,7 +66,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
         ret = self.get_account_balance()
         return [{asset['asset'] : asset['balance']} for asset in ret if float(asset['balance']) > 0]
 
-    def ws_place_order(self, order: Order):
+    def ws_place_order(self, order: Order,reduce_only=False):
         order_param = {
             "apiKey": self.api_key,
             "quantity": order.quantity,  # Example quantity, adjust as needed
@@ -77,6 +77,8 @@ class BinanceCryptoTrader(CryptoTraderBase):
         }
         if order.is_market_order is False:
             order_param["price"] = order.price
+        if reduce_only:
+            order_param["reduceOnly"] = True
         order_param = dict(sorted(order_param.items()))
         order_param["signature"] = self._sign(order_param)
         order_payload = {
