@@ -277,7 +277,7 @@ class SwapArbStrategyBot(BaseBot):
                 with self.entry_lock:
                     self.last_trade_ts[symbol] = now
                     try:
-                        order_qty = self.cal_quantity(symbol, bid_a, 100)
+                        order_qty = self.cal_quantity(symbol, bid_a, self.bot_config.max_trade_size_usd)
                         self.logger.info(f"Calculated order quantity for {symbol}: {order_qty}")
                         if order_qty[0] == 0 or order_qty[1] == 0:
                             self.logger.warning(f"Order quantity for {symbol} is zero, skipping...")

@@ -66,10 +66,11 @@ class BinanceCryptoTrader(CryptoTraderBase):
         ret = self.get_account_balance()
         return [{asset['asset'] : asset['balance']} for asset in ret if float(asset['balance']) > 0]
 
-    def ws_place_order(self, order: Order,reduce_only=False):
+    def ws_place_order(self, order: Order):
         order_param = {
             "apiKey": self.api_key,
             "quantity": order.quantity,  # Example quantity, adjust as needed
+          #  "reduceOnly": False,
             "side": "BUY" if order.direction == OrderDirection.BUY else "SELL",
             "symbol": order.symbol.replace('-', ''),
             "timestamp": int(time.time() * 1000),
@@ -77,7 +78,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
         }
         if order.is_market_order is False:
             order_param["price"] = order.price
-        if reduce_only:
+        if order.reduce_only:
             order_param["reduceOnly"] = True
         order_param = dict(sorted(order_param.items()))
         order_param["signature"] = self._sign(order_param)
@@ -166,7 +167,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
         self.ws_trade_client.send(payload)
 
     def _sign(self, params: dict) -> str:
-        query_string = urlencode(params)
+        query_string = urlencode(params,doseq=True)
         signature = hmac.new(
             self.api_secret.encode('utf-8'),
             query_string.encode('utf-8'),
@@ -266,13 +267,14 @@ if __name__ == "__main__":
     time.sleep(1)
     order = Order(
         exchange="BINANCE",
-        symbol="XMRUSDT",
-        direction=OrderDirection.SELL,
-        quantity=0.715,
+        symbol="XRPUSDT",
+        direction=OrderDirection.BUY,
+        quantity=21.3,
         price=0.8,  # Example price, adjust as needed
         order_type=OrderType.MARKET,
         is_market_order=True,
-        is_close_order=True
+        is_close_order=True,
+        reduce_only=True
     )
     # sz =trader.get_order_size("BTCUSDT",1500,10500.0)
     # print(f"Adjusted order size: {sz}")

@@ -16,6 +16,8 @@ from Workbench.util.OrderUtil import get_uuid
 
 
 class BybitCryptoTrader(CryptoTraderBase):
+
+
     def __init__(self, name="BybitFuturesTrader",
                  api_key=BYBIT_API_KEY,
                  api_secret=BYBIT_API_SECRET,
@@ -34,6 +36,29 @@ class BybitCryptoTrader(CryptoTraderBase):
             self.position_thread = Thread(target=self.get_position, daemon=True).start()
             self.logger.info("Bybit Futures WebSocket client started.")
             time.sleep(1)
+
+    def get_account_status(self):
+        endpoint = "/v5/account/info"
+        timestamp = str(int(time.time() * 1000))
+        recv_window = str(5000)
+
+        prehash = timestamp + self.api_key + recv_window
+        signature = hmac.new(self.api_secret.encode(), prehash.encode(), hashlib.sha256).hexdigest()
+
+        headers = {
+            "X-BAPI-API-KEY": self.api_key,
+            "X-BAPI-TIMESTAMP": timestamp,
+            "X-BAPI-RECV-WINDOW": recv_window,
+            "X-BAPI-SIGN": signature,
+        }
+
+        url = f"{self.base_url}{endpoint}"
+        resp = self.session.get(url, headers=headers)
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("retCode") != 0:
+            raise Exception(f"Failed to get account status: {data}")
+        return data["result"]
 
     def generate_signature(self, params: dict) -> str:
         query = urlencode(params)
