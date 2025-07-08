@@ -211,7 +211,7 @@ class SwapArbStrategyBot(BaseBot):
                         self.send_message(
                             f"Unwinded position for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
                         self.logger.info(f"Unwind position for {symbol} @ {get_now_hkt_string()}")
-                        time.sleep(3)
+                        time.sleep(5)
                         self._clean_position_book(symbol)
                         self.last_unwind_ts[symbol] = now_ms
 
@@ -256,11 +256,18 @@ class SwapArbStrategyBot(BaseBot):
                 cooldown_ms = 2000
 
                 if now - self.event_dict.get(symbol, 0) > 1000 or symbol not in self.event_dict:
+                    bo_spread_a = (ask_a-bid_a)/ask_a * 10000
+                    bo_spread_b = (ask_b-bid_b)/ask_b * 10000
                     self.logger.info(f"Arbitrage opportunity found for {symbol}: "
                                      f"Bid on {self.bot_config.exchange_a}: {bid_a}, "
                                      f"Ask on {self.bot_config.exchange_b}: {ask_b}, "
                                      f"Spread: {spread_bp:.2f}\n"
-                                     f'A BO:{(ask_a-bid_a)/ask_a * 10000:.2f} | B BO:{(ask_b-bid_b)/ask_b * 10000:.2f} @ {get_now_hkt_string()}')
+                                     f'A BO:{bo_spread_a:.2f} | B BO:{bo_spread_b:.2f} @ {get_now_hkt_string()}')
+
+                    #check bo spread
+                    if bo_spread_a > self.bot_config.depth_threshold or bo_spread_b > self.bot_config.depth_threshold:
+                        self.logger.info(f"BO spread breached theshold for {symbol}|{self.bot_config.depth_threshold}, skipping...")
+                        continue
 
                     self.event_dict[symbol] = now
 

@@ -60,6 +60,45 @@ class BybitCryptoTrader(CryptoTraderBase):
             raise Exception(f"Failed to get account status: {data}")
         return data["result"]
 
+    def get_account_tiering(self, category: str = "linear", symbol: str = None):
+        endpoint = "/v5/account/fee-rate"
+        timestamp = str(int(time.time() * 1000))
+        recv_window = "5000"
+
+        params = {"category": category}
+        if symbol:
+            params["symbol"] = symbol.upper()
+
+        # Step 1: build query string with sorted keys
+        query_string = urlencode(sorted(params.items()))
+
+        # Step 2: construct signature payload
+        sign_payload = timestamp + self.api_key + recv_window + query_string
+
+        # Step 3: generate signature
+        sign = hmac.new(
+            self.api_secret.encode(),
+            sign_payload.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        headers = {
+            "X-BAPI-API-KEY": self.api_key,
+            "X-BAPI-TIMESTAMP": timestamp,
+            "X-BAPI-RECV-WINDOW": recv_window,
+            "X-BAPI-SIGN": sign,
+        }
+
+        url = f"{self.base_url}{endpoint}"
+        response = self.session.get(url, headers=headers, params=params)
+        response.raise_for_status()
+
+        data = response.json()
+        if data.get("retCode") != 0:
+            raise Exception(f"Error fetching fee rate: {data.get('retMsg')}")
+
+        return data["result"]["list"]
+
     def generate_signature(self, params: dict) -> str:
         query = urlencode(params)
         return hmac.new(self.api_secret.encode(), query.encode(), hashlib.sha256).hexdigest()

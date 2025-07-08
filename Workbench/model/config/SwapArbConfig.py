@@ -21,7 +21,7 @@ class SwapArbConfig:
     max_trade_size_usd: float  # for check the USD value of the trade size , abort if larger than this value
     max_position: int  # 3 allow 3 swap positions
     is_depth_check: bool  # check the depth of the order book before placing orders
-
+    depth_threshold:int
     def to_dict(self):
         return {
             "is_trading": self.is_trading,
@@ -37,7 +37,8 @@ class SwapArbConfig:
             "max_trade_size_usd": self.max_trade_size_usd,
             "max_position": self.max_position,
             "position_leverage": self.position_leverage,
-            "is_depth_check": self.is_depth_check
+            "is_depth_check": self.is_depth_check,
+            "depth_threshold": self.depth_threshold
         }
 
     @staticmethod
