@@ -170,14 +170,14 @@ class SwapArbStrategyBot(BaseBot):
                 continue
             current_spread = self.spread_book[symbol]
             position_spread = price
-            spread = current_spread - position_spread
+            spread = position_spread - current_spread
 
             # 1. Skip if symbol recently unwinded
             if symbol in self.last_unwind_ts and now_ms - self.last_unwind_ts.get(symbol,0) < 100000:
                 continue
 
             # 2. Proceed if spread trigger met
-            if abs(spread) > self.bot_config.exit_bp and abs(spread) < 5000:
+            if spread > self.bot_config.exit_bp and abs(spread) < 5000:
                 self.logger.info(
                     f"Checking position unwind for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
 
