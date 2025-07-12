@@ -70,7 +70,6 @@ class BinanceCryptoTrader(CryptoTraderBase):
         order_param = {
             "apiKey": self.api_key,
             "quantity": order.quantity,  # Example quantity, adjust as needed
-          #  "reduceOnly": False,
             "side": "BUY" if order.direction == OrderDirection.BUY else "SELL",
             "symbol": order.symbol.replace('-', ''),
             "timestamp": int(time.time() * 1000),
@@ -79,7 +78,7 @@ class BinanceCryptoTrader(CryptoTraderBase):
         if order.is_market_order is False:
             order_param["price"] = order.price
         if order.reduce_only:
-            order_param["reduceOnly"] = True
+            pass
         order_param = dict(sorted(order_param.items()))
         order_param["signature"] = self._sign(order_param)
         order_payload = {
@@ -269,7 +268,7 @@ if __name__ == "__main__":
         exchange="BINANCE",
         symbol="XRPUSDT",
         direction=OrderDirection.BUY,
-        quantity=21.3,
+        quantity=27.3,
         price=0.8,  # Example price, adjust as needed
         order_type=OrderType.MARKET,
         is_market_order=True,
