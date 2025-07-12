@@ -292,7 +292,7 @@ class SwapArbStrategyBot(BaseBot):
                 #Hot logic
 
                 with self.entry_lock:
-                    self.last_trade_ts[symbol] = now
+                    self.last_trade_ts[symbol] = get_timestamp()
                     try:
                         order_qty = self.cal_quantity(symbol, bid_a, self.bot_config.max_trade_size_usd)
                         self.logger.info(f"Calculated order quantity for {symbol}: {order_qty}")
@@ -338,6 +338,7 @@ class SwapArbStrategyBot(BaseBot):
                         self.trader_client_b.ws_place_order(order_b)
                         self.send_message(
                             "Calculated order quantity for {}: {} @ {}".format(symbol, order_qty, get_now_hkt_string()))
+                        time.sleep(1)
                     except Exception as e:
                         self.logger.error(f"Error in SwapArbStrategyBot: {e}")
 
