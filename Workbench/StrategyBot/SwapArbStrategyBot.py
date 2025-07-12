@@ -304,11 +304,9 @@ class SwapArbStrategyBot(BaseBot):
                             self.logger.warning(f"Order quantity for {symbol} is zero, skipping...")
                             continue
                         if symbol in self.working_pair:
-                            # self.logger.info(f"Already working on {symbol}, skipping...")
+                            self.logger.info(f"Already working on {symbol}, skipping...")
                             continue
-                        self.working_pair.append(symbol)
                         if spread_bp > 0:
-
                             order_a = Order(
                                 exchange=self.bot_config.exchange_a,
                                 symbol=symbol,
@@ -345,9 +343,9 @@ class SwapArbStrategyBot(BaseBot):
                         self.trader_client_b.ws_place_order(order_b)
                         self.send_message(
                             "Calculated order quantity for {}: {} @ {}".format(symbol, order_qty, get_now_hkt_string()))
-                        self.position_count += 1
-                    finally:
-                        self.working_pair.remove(symbol)
+                    except Exception as e:
+                        self.logger.error(f"Error in SwapArbStrategyBot: {e}")
+
             else:
                 pass
 
