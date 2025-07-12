@@ -288,7 +288,6 @@ class SwapArbStrategyBot(BaseBot):
                 if not self.bot_config.is_trading:
                     continue
                 if symbol in self.swap_position_book.positions.keys():
-                    self.logger.info(f"Already working on {symbol}, skipping...")
                     continue
                 #Hot logic
 
@@ -301,7 +300,6 @@ class SwapArbStrategyBot(BaseBot):
                             self.logger.warning(f"Order quantity for {symbol} is zero, skipping...")
                             continue
                         if symbol in self.working_pair:
-                            self.logger.info(f"Already working on {symbol}, skipping...")
                             continue
                         if spread_bp > 0:
                             order_a = Order(
