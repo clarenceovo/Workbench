@@ -285,16 +285,13 @@ class SwapArbStrategyBot(BaseBot):
 
                     self.event_dict[symbol] = now
 
-                if len(self.swap_position_book.positions.keys()) > self.bot_config.max_position:
-                    continue
                 if not self.bot_config.is_trading:
                     continue
                 if symbol in self.swap_position_book.positions.keys():
+                    self.logger.info(f"Already working on {symbol}, skipping...")
                     continue
                 #Hot logic
-                if now - self.last_trade_ts.get(symbol, 0) < cooldown_ms:
-                    #self.logger.info(f"Trade cooldown active for {symbol}, skipping trade.")
-                    continue
+
                 with self.entry_lock:
                     self.last_trade_ts[symbol] = now
                     try:
