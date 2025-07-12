@@ -171,6 +171,10 @@ class SwapArbStrategyBot(BaseBot):
             current_spread = self.spread_book[symbol]
             position_spread = price
             spread = position_spread - current_spread
+            if position_spread> 0: #positive spread
+                spread = position_spread - current_spread
+            else: #negative spread
+                spread = position_spread + current_spread
 
             # 1. Skip if symbol recently unwinded
             if symbol in self.last_unwind_ts and now_ms - self.last_unwind_ts.get(symbol,0) < 100000:
