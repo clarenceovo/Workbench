@@ -150,13 +150,13 @@ class SwapArbStrategyBot(BaseBot):
             pass
         else:
             self.logger.error("One of the exchanges is not active. killing the bot...")
-            self.disable_trading()
+            #self.disable_trading()
             kill_process()
         if (self.trader_client_a.ws_trade_client.is_running and self.trader_client_b.ws_trade_client.is_running):
             pass
         else:
             self.logger.error("One of the traders is not active. killing the bot... and disable trading")
-            self.disable_trading()
+            #self.disable_trading()
             kill_process()
 
     def _check_position_unwind(self):
