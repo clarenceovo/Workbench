@@ -267,7 +267,7 @@ if __name__ == "__main__":
     order = Order(
         exchange="BINANCE",
         symbol="XRPUSDT",
-        direction=OrderDirection.BUY,
+        direction=OrderDirection.SELL,
         quantity=27.3,
         price=0.8,  # Example price, adjust as needed
         order_type=OrderType.MARKET,

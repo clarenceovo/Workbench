@@ -190,10 +190,11 @@ class SwapArbStrategyBot(BaseBot):
 
                     del self.swap_position_book.positions[symbol]
                     if position_long and position_short:
+
                         order_long = Order(
                             exchange=position_long.exchange,
                             symbol=position_long.symbol,
-                            direction=OrderDirection.SELL if position_long.direction == OrderDirection.BUY else OrderDirection.BUY,
+                            direction=OrderDirection.SELL,
                             order_type=OrderType.MARKET,
                             quantity=abs(position_long.quantity),
                             is_market_order=True,
@@ -204,7 +205,7 @@ class SwapArbStrategyBot(BaseBot):
                         order_short = Order(
                             exchange=position_short.exchange,
                             symbol=position_short.symbol,
-                            direction=OrderDirection.SELL if position_short.direction == OrderDirection.BUY else OrderDirection.BUY,
+                            direction=OrderDirection.BUY,
                             order_type=OrderType.MARKET,
                             quantity=abs(position_short.quantity),
                             reduce_only=True,
@@ -216,10 +217,10 @@ class SwapArbStrategyBot(BaseBot):
                         else:
                             self.trader_client_b.ws_place_order(order_long)
 
-                        if order_short.exchange == self.trader_client_b.exchange:
-                            self.trader_client_b.ws_place_order(order_short)
-                        else:
+                        if order_short.exchange == self.trader_client_a.exchange:
                             self.trader_client_a.ws_place_order(order_short)
+                        else:
+                            self.trader_client_b.ws_place_order(order_short)
 
                         self.send_message(
                             f"Unwinded position for {symbol} | Position Spread: {position_spread:.2f} | Current Spread: {current_spread:.2f} @ {get_now_hkt_string()}")
