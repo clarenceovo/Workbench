@@ -269,7 +269,7 @@ class SwapArbStrategyBot(BaseBot):
                 now = get_timestamp()
                 cooldown_ms = 2000
 
-                if now - self.event_dict.get(symbol, 0) > 1000 or symbol not in self.event_dict:
+                if now - self.event_dict.get(symbol, 0) > 10 or symbol not in self.event_dict:
                     bo_spread_a = (ask_a-bid_a)/ask_a * 10000
                     bo_spread_b = (ask_b-bid_b)/ask_b * 10000
                     self.logger.info(f"Arbitrage opportunity found for {symbol}: "
