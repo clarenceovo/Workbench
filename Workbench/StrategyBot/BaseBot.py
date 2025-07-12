@@ -7,7 +7,7 @@ import json
 import logging
 class BaseBot(object):
     KEY = "StrategyBot:SwapArb:{}"  # Placeholder for the Redis key format
-    def __init__(self, redis_conn: RedisClient, bot_id: str,messenger=None):
+    def __init__(self, redis_conn: RedisClient, bot_id: str,messenger=None,message_active=True):
         self.logger = logging.getLogger(type(self).__name__)
         self.redis_conn = redis_conn
         self.bot_id = bot_id
@@ -17,6 +17,7 @@ class BaseBot(object):
         self.last_alert = None
         self.last_ts = get_utc_now_ms()
         self.bot_config = None
+        self.message_active = message_active
         self.reload_config()
         self.market_connector = {}
 
@@ -97,6 +98,8 @@ class BaseBot(object):
             self.logger.warning("Messenger is not initialized, cannot send message.")
             return
         try:
+            if self.message_active == False:
+                return
             self.messenger.send_message(text=message)
         except Exception as e:
             self.logger.warning(f"Failed to send Telegram message: {e}")

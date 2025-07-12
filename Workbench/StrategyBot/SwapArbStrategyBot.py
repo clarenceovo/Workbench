@@ -21,9 +21,9 @@ from Workbench.transport.telegram_postman import TelegramPostman
 
 class SwapArbStrategyBot(BaseBot):
     bot_config : SwapArbConfig
-    def __init__(self, redis_conn: RedisClient,messenger, bot_id:str):
+    def __init__(self, redis_conn: RedisClient,messenger, bot_id:str,message_active=True):
         self.publish_mode = False
-        super().__init__(redis_conn, bot_id,messenger)
+        super().__init__(redis_conn, bot_id,messenger,message_active)
         self.logger.info("Initializing SwapArbStrategyBot...")
         self.event_dict = {}
         self.last_trade_ts = {}
@@ -272,16 +272,16 @@ class SwapArbStrategyBot(BaseBot):
                 if now - self.event_dict.get(symbol, 0) > 10 or symbol not in self.event_dict:
                     bo_spread_a = (ask_a-bid_a)/ask_a * 10000
                     bo_spread_b = (ask_b-bid_b)/ask_b * 10000
+                    #check bo spread
+                    if bo_spread_a > self.bot_config.depth_threshold or bo_spread_b > self.bot_config.depth_threshold:
+                        continue
                     self.logger.info(f"Arbitrage opportunity found for {symbol}: "
                                      f"Bid on {self.bot_config.exchange_a}: {bid_a}, "
                                      f"Ask on {self.bot_config.exchange_b}: {ask_b}, "
                                      f"Spread: {spread_bp:.2f}\n"
                                      f'A BO:{bo_spread_a:.2f} | B BO:{bo_spread_b:.2f} @ {get_now_hkt_string()}')
 
-                    #check bo spread
-                    if bo_spread_a > self.bot_config.depth_threshold or bo_spread_b > self.bot_config.depth_threshold:
-                        self.logger.info(f"BO spread breached theshold for {symbol}|{self.bot_config.depth_threshold}, skipping...")
-                        continue
+
 
                     self.event_dict[symbol] = now
 
@@ -351,4 +351,4 @@ if __name__ == "__main__":
     tg = TelegramPostman()
     args = sys.argv[1:]
     bot_id = args[0] if len(args) > 0 else "ALT1"
-    bot = SwapArbStrategyBot(client,messenger=tg, bot_id=bot_id)
+    bot = SwapArbStrategyBot(client,messenger=tg, bot_id=bot_id,message_active=False)
