@@ -15,16 +15,15 @@ module.exports = {
             instances: 1,
             autorestart: true,
             watch: false,
-            max_memory_restart: '1G',
+            max_memory_restart: '4G',
             error_file: `${code_path}/Workbench/StrategyBot/logs/error.log`,
             out_file: `${code_path}/Workbench/StrategyBot/logs/out.log`,
             merge_logs: true,
             log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-            cron_restart: '0 0 * * *'
         },
         {
             name: 'SwapArbStrategyBot_2',
-            script: './Workbench/StrategyBot/SwapArbStrategyBot.py ALT2',
+            script: './Workbench/StrategyBot/SwapArbStrategyBot.py',
             cwd: code_path,
             args: ['ALT2'], // Pass ALT2 as an argument
             env: {
@@ -36,12 +35,11 @@ module.exports = {
             instances: 1,
             autorestart: true,
             watch: false,
-            max_memory_restart: '1G',
-            error_file: `${code_path}/Workbench/StrategyBot/logs/error.log`,
-            out_file: `${code_path}/Workbench/StrategyBot/logs/out.log`,
+            max_memory_restart: '4G',
+            error_file: `${code_path}/Workbench/StrategyBot/logs/error_2.log`,
+            out_file: `${code_path}/Workbench/StrategyBot/logs/out_2.log`,
             merge_logs: true,
             log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-            cron_restart: '0 0 * * *'
         }
 
     ],

@@ -352,4 +352,4 @@ if __name__ == "__main__":
     tg = TelegramPostman()
     args = sys.argv[1:]
     bot_id = args[0] if len(args) > 0 else "ALT1"
-    bot = SwapArbStrategyBot(client,messenger=tg, bot_id=bot_id,message_active=False)
+    bot = SwapArbStrategyBot(client,messenger=tg, bot_id=bot_id)
