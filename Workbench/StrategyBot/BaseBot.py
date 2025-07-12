@@ -96,7 +96,10 @@ class BaseBot(object):
         if self.messenger is None:
             self.logger.warning("Messenger is not initialized, cannot send message.")
             return
-        self.messenger.send_message(text=message)
+        try:
+            self.messenger.send_message(text=message)
+        except Exception as e:
+            self.logger.warning(f"Failed to send Telegram message: {e}")
 
     def init_trader(self, exchange_name:str):
         """
