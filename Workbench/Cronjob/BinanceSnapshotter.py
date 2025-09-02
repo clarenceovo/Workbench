@@ -5,7 +5,7 @@ from Workbench.CryptoDataConnector.BinanceDataCollector import BinanceDataCollec
 from Workbench.model.dto.FundingRate import FundingRate
 from Workbench.model.dto.OpenInterest import OpenInterest
 from Workbench.transport.QuestClient import QuestDBClient
-from Workbench.config.ConnectionConstant import QUEST_PORT, QUEST_HOST
+from Workbench.config.ConnectionConstant import QUEST_PORT, QUEST_HOST, CLARENCE_QUEST_HOST, CLARENCE_QUEST_PORT
 from Workbench.util.TimeUtil import get_timestamp, get_now, get_now_utc
 
 
@@ -57,7 +57,7 @@ def get_open_interest(client: BinanceDataCollector, db_client: QuestDBClient):
 
 
 if __name__ == "__main__":
-    db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
+    db_client = QuestDBClient(host=CLARENCE_QUEST_HOST, port=CLARENCE_QUEST_PORT)
     data_client = BinanceDataCollector()
     # Register the collector
 

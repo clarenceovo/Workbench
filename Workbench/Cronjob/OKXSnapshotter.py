@@ -6,7 +6,7 @@ from Workbench.CryptoDataConnector.OKXDataCollector import OKXDataCollector
 from Workbench.model.dto.FundingRate import FundingRate
 from Workbench.model.dto.OpenInterest import OpenInterest
 from Workbench.transport.QuestClient import QuestDBClient
-from Workbench.config.ConnectionConstant import QUEST_PORT, QUEST_HOST
+from Workbench.config.ConnectionConstant import  CLARENCE_QUEST_HOST,CLARENCE_QUEST_PORT
 from Workbench.util.TimeUtil import get_now_utc
 
 def get_funding(client: OKXDataCollector, db_client: QuestDBClient):
@@ -61,7 +61,7 @@ def get_open_interest(client: OKXDataCollector, db_client: QuestDBClient):
     print(f'Open interest data fetched successfully from OKX @{get_now_utc()}')
 
 if __name__ == "__main__":
-    db_client = QuestDBClient(host=QUEST_HOST, port=QUEST_PORT)
+    db_client = QuestDBClient(host=CLARENCE_QUEST_HOST, port=CLARENCE_QUEST_PORT)
     data_client = OKXDataCollector()
 
     schedule.every(5).minutes.at(":00").do(lambda: get_open_interest(data_client, db_client))

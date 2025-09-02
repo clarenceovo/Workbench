@@ -1,12 +1,12 @@
 import time
 
 from Workbench.CryptoDataConnector.HyperliquidDataCollector import HyperliquidDataCollector
-from Workbench.config.ConnectionConstant import QUEST_HOST, QUEST_PORT
+from Workbench.config.ConnectionConstant import QUEST_HOST, QUEST_PORT, CLARENCE_QUEST_HOST
 from Workbench.model.dto.FundingRate import FundingRate
 from Workbench.transport.QuestClient import QuestDBClient
 from datetime import datetime, timedelta
 
-client = QuestDBClient(host="34.97.186.69",
+client = QuestDBClient(host=CLARENCE_QUEST_HOST,
                        port=9009,read_only=True)
 
 
@@ -43,8 +43,8 @@ if __name__ == '__main__':
 
         payload = []
         end_of_page = False
-        start_ts = int((datetime.now() - timedelta(days=365)).timestamp())
-        end_ts = int(datetime(2025, 6, 2, 14, 0).timestamp() * 1000)
+        start_ts = int((datetime.now() - timedelta(days=180)).timestamp())
+        end_ts = int(datetime(2025, 9, 1, 22, 0).timestamp() * 1000)
         while end_of_page  is False:
             try:
                 hist_funding = hl_client.get_historical_funding(symbol,

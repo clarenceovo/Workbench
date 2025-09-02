@@ -18,7 +18,9 @@ class QuestBatch:
 
 
 class QuestDBClient(BaseHandler):
-    def __init__(self, host, port, batch_size=1000, flush_interval=0.5,read_only=False):
+    def __init__(self, host, port, batch_size=1000,
+                 user="clarenceovo", password="96854233",
+                 flush_interval=0.5,read_only=False):
         super().__init__("QuestDBClient")
         self.is_active = True
         self.host = host
