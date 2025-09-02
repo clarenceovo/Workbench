@@ -41,8 +41,8 @@ class QuestDBClient(BaseHandler):
         self.read_conn = psycopg2.connect(host=self.host,
                                           port=self.port,
                                           dbname='qdb',
-                                          user='admin',
-                                          password='quest')
+                                          user="clarenceovo",
+                                          password="96854233")
 
 
     def write(self, table, symbol, columns, timestamp=None):
