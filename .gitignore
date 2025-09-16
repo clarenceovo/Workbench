@@ -172,3 +172,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# C++ build artifacts
+cpp/*.o
+cpp/main
+WorkbenchCpp/*.o
+WorkbenchCpp/main
